@@ -1,0 +1,4 @@
+{"query":"EGFR non-small cell lung cancer tyrosine kinase inhibitor resistance","expected_ids":["toy-001"],"expected_terms":["EGFR","non-small cell lung cancer","resistance"]}
+{"query":"BRAF melanoma targeted therapy","expected_ids":["toy-002"],"expected_terms":["BRAF","melanoma","targeted inhibitors"]}
+{"query":"neoantigen prediction HLA RNA expression","expected_ids":["toy-003"],"expected_terms":["HLA","RNA expression","antigen presentation"]}
+{"query":"single-cell target discovery inflammatory disease IL6 TNF","expected_ids":["toy-005"],"expected_terms":["single-cell","target discovery","IL6","TNF"]}
