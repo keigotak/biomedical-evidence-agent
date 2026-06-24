@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from biomedical_evidence_agent.evidence import build_evidence_card
+from biomedical_evidence_agent.evidence import build_evidence_card, render_markdown
 from biomedical_evidence_agent.pubmed import _efetch
 from biomedical_evidence_agent.retrieval import LexicalRetriever, load_corpus
 
@@ -57,6 +57,29 @@ class PipelineTest(unittest.TestCase):
         self.assertTrue(
             all(item.stance == "insufficient" for item in low_relevance_braf_claims)
         )
+
+    def test_render_caps_evidence_sentences_per_source_and_stance(self) -> None:
+        records = load_corpus(ROOT / "data" / "sample_corpus.jsonl")
+        claim = "BRAF melanoma is associated with response to targeted inhibitor treatment."
+        results = LexicalRetriever(records).search(claim, top_k=4)
+        card = build_evidence_card(query=claim, retrieved=results, claim=claim)
+        rendered = render_markdown(card)
+
+        self.assertLessEqual(rendered.count("| toy-002]"), 2)
+        self.assertLessEqual(rendered.count("| toy-006]"), 2)
+
+    def test_workflow_claim_can_be_supporting_evidence(self) -> None:
+        records = load_corpus(ROOT / "data" / "sample_corpus.jsonl")
+        claim = (
+            "Neoantigen prediction can prioritize candidates using HLA typing, "
+            "RNA expression, and peptide binding scores."
+        )
+        results = LexicalRetriever(records).search(claim, top_k=3)
+        card = build_evidence_card(query=claim, retrieved=results, claim=claim)
+
+        supporting = [item for item in card.claims if item.stance == "supports"]
+        self.assertTrue(supporting)
+        self.assertEqual(supporting[0].source_id, "toy-003")
 
     def test_pubmed_xml_records_are_mapped_to_corpus_records(self) -> None:
         xml = """<?xml version="1.0" ?>

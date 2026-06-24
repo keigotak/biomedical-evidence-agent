@@ -30,6 +30,75 @@ INSUFFICIENT_CUES = {
     "hypotheses",
     "indirect",
 }
+DISEASE_TERMS = {
+    "cancer",
+    "carcinoma",
+    "cohort",
+    "disease",
+    "leukemia",
+    "lung",
+    "melanoma",
+    "nsclc",
+    "patients",
+    "tumor",
+    "tumors",
+}
+THERAPY_TERMS = {
+    "benefit",
+    "benefits",
+    "drug",
+    "drugs",
+    "efficacy",
+    "inhibitor",
+    "inhibitors",
+    "response",
+    "resistance",
+    "survival",
+    "targeted",
+    "therapies",
+    "therapy",
+    "treatment",
+    "treatments",
+}
+METHOD_TERMS = {
+    "antigen",
+    "binding",
+    "candidate",
+    "candidates",
+    "expression",
+    "hla",
+    "neoantigen",
+    "peptide",
+    "prediction",
+    "rna",
+    "score",
+    "scores",
+    "variant",
+    "variants",
+    "workflow",
+}
+PREDICATE_TERMS = {
+    "associated",
+    "benefit",
+    "benefits",
+    "correlate",
+    "correlates",
+    "durable",
+    "efficacy",
+    "predict",
+    "predicts",
+    "prioritize",
+    "combines",
+    "produce",
+    "produces",
+    "ranking",
+    "response",
+    "responses",
+    "resistance",
+    "sensitivity",
+    "survival",
+}
+MAX_SENTENCES_PER_SOURCE_STANCE = 2
 
 
 def build_evidence_card(
@@ -61,6 +130,7 @@ def build_evidence_card(
 
 def extract_claims(query: str, retrieved: list[RetrievedRecord]) -> list[EvidenceClaim]:
     query_terms = set(tokenize(query))
+    anchors = _claim_anchors(query, query_terms)
     claims: list[EvidenceClaim] = []
     for item in retrieved:
         sentences = SENTENCE_RE.split(item.record.abstract)
@@ -74,7 +144,7 @@ def extract_claims(query: str, retrieved: list[RetrievedRecord]) -> list[Evidenc
                     source_id=item.record.id,
                     evidence_type=item.record.evidence_type,
                     confidence=_confidence(item.score),
-                    stance=_stance(sentence, query_terms, sentence_terms, item.score),
+                    stance=_stance(sentence_terms, anchors, item.score),
                 )
             )
     return claims
@@ -115,18 +185,41 @@ def _confidence(score: float) -> str:
     return "low"
 
 
-def _stance(
-    sentence: str,
-    query_terms: set[str],
-    sentence_terms: set[str],
-    score: float,
-) -> str:
-    overlap = len(query_terms & sentence_terms)
+def _stance(sentence_terms: set[str], anchors: dict[str, set[str]], score: float) -> str:
+    anchor_categories = _anchor_category_count(sentence_terms, anchors)
+    predicate_terms = anchors["predicate"] | PREDICATE_TERMS
+    predicate_overlap = bool(sentence_terms & predicate_terms)
+    strong_predicate_overlap = len(sentence_terms & predicate_terms) >= 2
     if INSUFFICIENT_CUES & sentence_terms or score < 0.3:
         return "insufficient"
-    if CONFLICT_CUES & sentence_terms and overlap >= 2:
+    if CONFLICT_CUES & sentence_terms and anchor_categories >= 2 and predicate_overlap:
         return "conflicts"
+    if (anchor_categories < 2 and not strong_predicate_overlap) or not predicate_overlap:
+        return "insufficient"
     return "supports"
+
+
+def _claim_anchors(query: str, query_terms: set[str]) -> dict[str, set[str]]:
+    gene_like = {
+        token.lower()
+        for token in re.findall(r"[A-Za-z0-9]+(?:-[A-Za-z0-9]+)?", query)
+        if any(char.isdigit() for char in token) or (token.isupper() and len(token) >= 3)
+    }
+    return {
+        "gene": gene_like,
+        "disease": query_terms & DISEASE_TERMS,
+        "therapy": query_terms & THERAPY_TERMS,
+        "method": query_terms & METHOD_TERMS,
+        "predicate": (query_terms & PREDICATE_TERMS) or (query_terms & THERAPY_TERMS),
+    }
+
+
+def _anchor_category_count(sentence_terms: set[str], anchors: dict[str, set[str]]) -> int:
+    return sum(
+        1
+        for category in ("gene", "disease", "therapy", "method")
+        if sentence_terms & anchors[category]
+    )
 
 
 def _append_claim_group(
@@ -136,7 +229,7 @@ def _append_claim_group(
     stance: str,
 ) -> None:
     lines.extend(["", f"## {heading}"])
-    selected = [claim for claim in claims if claim.stance == stance]
+    selected = _cap_per_source([claim for claim in claims if claim.stance == stance])
     if not selected:
         lines.append("- No extracted evidence in this category.")
         return
@@ -144,3 +237,15 @@ def _append_claim_group(
         lines.append(
             f"- [{claim.confidence} | {claim.evidence_type} | {claim.source_id}] {claim.text}"
         )
+
+
+def _cap_per_source(claims: list[EvidenceClaim]) -> list[EvidenceClaim]:
+    counts: dict[str, int] = {}
+    capped: list[EvidenceClaim] = []
+    for claim in claims:
+        count = counts.get(claim.source_id, 0)
+        if count >= MAX_SENTENCES_PER_SOURCE_STANCE:
+            continue
+        capped.append(claim)
+        counts[claim.source_id] = count + 1
+    return capped
