@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 
 from biomedical_evidence_agent.evidence import build_evidence_card
+from biomedical_evidence_agent.pubmed import _efetch
 from biomedical_evidence_agent.retrieval import LexicalRetriever, load_corpus
 
 
@@ -28,6 +29,42 @@ class PipelineTest(unittest.TestCase):
         self.assertTrue(card.retrieved)
         self.assertTrue(card.claims)
         self.assertEqual(card.retrieved[0].record.id, "toy-002")
+
+    def test_claim_mode_separates_supporting_and_conflicting_evidence(self) -> None:
+        records = load_corpus(ROOT / "data" / "sample_corpus.jsonl")
+        claim = "BRAF melanoma is associated with response to targeted inhibitor treatment."
+        results = LexicalRetriever(records).search(claim, top_k=4)
+        card = build_evidence_card(query=claim, retrieved=results, claim=claim)
+        stances = {claim.stance for claim in card.claims}
+
+        self.assertIn("supports", stances)
+        self.assertIn("conflicts", stances)
+        self.assertEqual(card.claim, claim)
+
+    def test_pubmed_xml_records_are_mapped_to_corpus_records(self) -> None:
+        xml = """<?xml version="1.0" ?>
+        <PubmedArticleSet>
+          <PubmedArticle>
+            <MedlineCitation>
+              <PMID>12345</PMID>
+              <Article>
+                <ArticleTitle>Example biomedical title</ArticleTitle>
+                <Journal><JournalIssue><PubDate><Year>2024</Year></PubDate></JournalIssue></Journal>
+                <Abstract><AbstractText>Example abstract text.</AbstractText></Abstract>
+              </Article>
+            </MedlineCitation>
+          </PubmedArticle>
+        </PubmedArticleSet>
+        """
+
+        from unittest.mock import patch
+
+        with patch("biomedical_evidence_agent.pubmed._get", return_value=xml):
+            records = _efetch(["12345"])
+
+        self.assertEqual(records[0].id, "pubmed-12345")
+        self.assertEqual(records[0].year, 2024)
+        self.assertEqual(records[0].evidence_type, "public_literature")
 
 
 if __name__ == "__main__":

@@ -6,12 +6,16 @@ This project explores how LLMs, retrieval, structured evidence extraction, and e
 
 It uses toy/sample data only and does not include any proprietary or confidential work.
 
+The main workflow is claim-centered evidence synthesis: given a biomedical claim, retrieve candidate evidence and organize extracted sentences into supporting, conflicting, and insufficient/indirect evidence. This is a research engineering demo, not medical advice, clinical decision support, or a reproduction of proprietary work.
+
 ## What It Demonstrates
 
 - Retrieval over PubMed-abstract-style sample records
 - Evidence card generation for gene, disease, and drug questions
 - Claim extraction from retrieved abstracts
+- Claim-centered evidence grouping into supporting, conflicting, and insufficient/indirect evidence
 - Evidence type and confidence labeling
+- Optional PubMed title/abstract retrieval using public metadata only
 - A small evaluation set for retrieval and claim-support checks
 
 The implementation is intentionally compact. It is meant to show the shape of a biology-facing biomedical AI workflow, not to provide clinical or production guidance.
@@ -20,11 +24,22 @@ The implementation is intentionally compact. It is meant to show the shape of a 
 
 ```bash
 python -m biomedical_evidence_agent.cli \
-  --query "EGFR non-small cell lung cancer tyrosine kinase inhibitor resistance" \
+  --claim "EGFR T790M is associated with resistance to first-generation EGFR inhibitors in non-small cell lung cancer." \
   --top-k 3
 ```
 
-This produces a structured evidence card with retrieved records, extracted claims, evidence labels, and limitations.
+This produces a structured evidence card with retrieved records, extracted claims, evidence stance labels, and limitations.
+
+Optional PubMed metadata mode:
+
+```bash
+python -m biomedical_evidence_agent.cli \
+  --source pubmed \
+  --claim "BRAF V600E melanoma is associated with response to targeted inhibitor treatment." \
+  --top-k 5
+```
+
+PubMed mode uses public title/abstract metadata only. The default mode remains the local toy/sample corpus.
 
 ## Project Structure
 
@@ -39,6 +54,7 @@ This produces a structured evidence card with retrieved records, extracted claim
 │   └── biomedical_evidence_agent/
 │       ├── cli.py                 # Command-line entry point
 │       ├── evidence.py            # Evidence card generation
+│       ├── pubmed.py              # Optional PubMed metadata retrieval
 │       ├── retrieval.py           # Lightweight lexical retriever
 │       └── schemas.py             # Dataclasses for records and cards
 └── tests/
@@ -47,7 +63,7 @@ This produces a structured evidence card with retrieved records, extracted claim
 
 ## Design Notes
 
-The current code uses deterministic extraction and lexical retrieval so the repository can run without API keys. In a real LLM workflow, the deterministic `extract_claims` step can be replaced with a model-backed extractor while keeping the same structured evidence card interface.
+The current code uses deterministic extraction, stance labeling, and lexical retrieval so the repository can run without API keys. In a real LLM workflow, the deterministic `extract_claims` step can be replaced with a model-backed extractor while keeping the same structured evidence card interface.
 
 ## Local Usage
 
@@ -55,7 +71,7 @@ Python 3.10 or newer is recommended.
 
 ```bash
 python -m pip install -e .
-python -m biomedical_evidence_agent.cli --query "BRAF melanoma targeted therapy" --top-k 2
+python -m biomedical_evidence_agent.cli --claim "BRAF melanoma is associated with response to targeted inhibitor treatment." --top-k 3
 python -m unittest discover -s tests
 ```
 

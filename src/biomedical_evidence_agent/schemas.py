@@ -25,6 +25,7 @@ class EvidenceClaim:
     source_id: str
     evidence_type: str
     confidence: str
+    stance: str = "insufficient"
 
 
 @dataclass(frozen=True)
@@ -32,5 +33,7 @@ class EvidenceCard:
     query: str
     retrieved: list[RetrievedRecord]
     claims: list[EvidenceClaim]
+    claim: str | None = None
+    source: str = "sample"
     limitations: list[str] = field(default_factory=list)
     next_checks: list[str] = field(default_factory=list)
