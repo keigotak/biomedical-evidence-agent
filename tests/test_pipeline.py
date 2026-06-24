@@ -41,6 +41,23 @@ class PipelineTest(unittest.TestCase):
         self.assertIn("conflicts", stances)
         self.assertEqual(card.claim, claim)
 
+    def test_low_relevance_conflict_cues_are_insufficient(self) -> None:
+        records = load_corpus(ROOT / "data" / "sample_corpus.jsonl")
+        claim = (
+            "EGFR activating variants are associated with response to tyrosine kinase "
+            "inhibitors in non-small cell lung cancer."
+        )
+        results = LexicalRetriever(records).search(claim, top_k=3)
+        card = build_evidence_card(query=claim, retrieved=results, claim=claim)
+
+        low_relevance_braf_claims = [
+            item for item in card.claims if item.source_id == "toy-006"
+        ]
+        self.assertTrue(low_relevance_braf_claims)
+        self.assertTrue(
+            all(item.stance == "insufficient" for item in low_relevance_braf_claims)
+        )
+
     def test_pubmed_xml_records_are_mapped_to_corpus_records(self) -> None:
         xml = """<?xml version="1.0" ?>
         <PubmedArticleSet>

@@ -24,6 +24,7 @@ INSUFFICIENT_CUES = {
     "could",
     "unclear",
     "requires",
+    "require",
     "needed",
     "hypothesis",
     "hypotheses",
@@ -121,10 +122,10 @@ def _stance(
     score: float,
 ) -> str:
     overlap = len(query_terms & sentence_terms)
-    if CONFLICT_CUES & sentence_terms and overlap >= 2:
-        return "conflicts"
     if INSUFFICIENT_CUES & sentence_terms or score < 0.3:
         return "insufficient"
+    if CONFLICT_CUES & sentence_terms and overlap >= 2:
+        return "conflicts"
     return "supports"
 
 
