@@ -49,7 +49,8 @@ PubMed mode uses public title/abstract metadata only. The default mode remains t
 │   ├── sample_corpus.jsonl        # Toy biomedical abstract records
 │   └── evaluation_claims.jsonl    # Small retrieval/claim evaluation set
 ├── docs/
-│   └── architecture.md            # Workflow and component design
+│   ├── architecture.md            # Workflow and component design
+│   └── example_output.md          # Example evidence card
 ├── src/
 │   └── biomedical_evidence_agent/
 │       ├── cli.py                 # Command-line entry point
@@ -64,6 +65,8 @@ PubMed mode uses public title/abstract metadata only. The default mode remains t
 ## Design Notes
 
 The current code uses deterministic extraction, stance labeling, and lexical retrieval so the repository can run without API keys. In a real LLM workflow, the deterministic `extract_claims` step can be replaced with a model-backed extractor while keeping the same structured evidence card interface.
+
+See [docs/example_output.md](docs/example_output.md) for a compact example evidence card.
 
 ## Local Usage
 
