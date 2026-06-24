@@ -51,6 +51,8 @@ The current code uses deterministic extraction and lexical retrieval so the repo
 
 ## Local Usage
 
+Python 3.10 or newer is recommended.
+
 ```bash
 python -m pip install -e .
 python -m biomedical_evidence_agent.cli --query "BRAF melanoma targeted therapy" --top-k 2

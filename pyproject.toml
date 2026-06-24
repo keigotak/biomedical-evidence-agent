@@ -7,7 +7,7 @@ name = "biomedical-evidence-agent"
 version = "0.1.0"
 description = "Toy biomedical evidence synthesis demo with retrieval, claim extraction, and evidence cards."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [{name = "Keigo Takahashi"}]
 dependencies = []
