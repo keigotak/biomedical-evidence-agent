@@ -8,7 +8,7 @@ Biomedical Evidence Agent is a small evidence synthesis workflow for biology-fac
 User query or biomedical claim
   -> concept normalization (ontology grounding of entities)
   -> retrieval over sample abstracts (lexical / concept-aware / optional embedding) or PubMed metadata
-  -> claim extraction from retrieved evidence
+  -> claim extraction (deterministic, or optional model-backed with a citation-grounding guard)
   -> supporting / conflicting / insufficient grouping with attribution guards
   -> evidence-tier, facet, and confidence labeling with provenance spans
   -> quantitative parameter extraction (IC50/EC50/Ki/Cmax/half-life/...)
@@ -43,6 +43,10 @@ This is the same-entity backbone the rest of the pipeline stands on: abbreviatio
 
 Each sentence is tagged with evidence **facets** (`mechanism`, `clinical`, `biomarker`, `method`), an evidence **tier** (`clinical` > `in_vivo` > `association` > `in_vitro` > `in_silico`, from study design or text cues), and a **provenance span** (character offsets back to the source record). Confidence combines retrieval relevance, stance decisiveness, anchor count, facet coverage, and tier weight.
 
+### Model-backed Extractor (optional)
+
+`extraction.py` is the model-backed alternative the deterministic scaffold was designed to make room for. `LLMClaimExtractor` takes an injected `responder` — a real Anthropic backend (behind the `llm` extra) or an offline stand-in — and turns its raw quotes into `EvidenceClaim`s. The core is a **citation-grounding / faithfulness guard**: a quote is kept only if it is a verbatim span of the cited abstract, so a hallucinated or altered quote is dropped rather than trusted. This lets a model be swapped in for stance judgment without weakening the card's provenance guarantee. The deterministic extractor remains the default; the LLM path trades the deterministic attribution guards for model judgment plus the faithfulness guard.
+
 ### Quantitative Extractor
 
 `quant.py` lifts quantitative pharmacology parameters out of prose into structured records: potency (IC50, EC50, Ki, Kd) and PK/exposure (Cmax, AUC, half-life, clearance, bioavailability), each with relation, value, unit, and a provenance span. Each measurement is attributed to the nearest preceding compound so values are comparable across compounds and assays.
@@ -59,6 +63,7 @@ The evidence card is the primary output object. It contains the query or claim, 
 - **Retrieval:** Recall@k and MRR with a lexical / +concept / +embedding ablation (`data/evaluation_claims.jsonl`).
 - **Stance:** per-class precision/recall/F1 plus guardrail metrics — cross-entity and opposite-polarity leaks, target zero (`data/evaluation_stances.jsonl`).
 - **Quantitative:** precision/recall/F1 on extracted (parameter, value, unit) tuples, with a negative control (`data/evaluation_quant.jsonl`).
+- **Extractor:** deterministic vs model-backed stance macro-F1, plus a **faithfulness rate** (fraction of a responder's proposed quotes that are verbatim in the source). The faithfulness metric is what a real model backend must be held to; the offline stand-in is faithful by construction and underperforms the deterministic guards on stance, which the ablation makes explicit.
 
 Run it with `python -m biomedical_evidence_agent.evaluation`.
 

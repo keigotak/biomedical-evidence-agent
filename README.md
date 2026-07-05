@@ -17,8 +17,9 @@ The main workflow is claim-centered evidence synthesis: given a biomedical claim
 - Evidence-tier weighting by study design (`clinical` > `in_vivo` > `association` > `in_vitro` > `in_silico`) folded into confidence
 - Multi-angle evidence facets (mechanism, clinical, biomarker, method) and an "Evidence by Angle" view
 - Quantitative pharmacology extraction (IC50, EC50, Ki, Cmax, half-life, ...) with value, unit, and per-compound attribution for cross-compound comparison
+- An optional model-backed (LLM) claim extractor with a citation-grounding guard that drops any quote not verbatim in its source — swappable for the deterministic default without weakening provenance
 - Optional PubMed title/abstract retrieval using public metadata only
-- A four-part evaluation suite (entity linking, retrieval ablation, stance with guardrails, quantitative)
+- An evaluation suite (entity linking, retrieval ablation, stance with guardrails, quantitative, extractor faithfulness)
 
 The implementation is intentionally compact. It is meant to show the shape of a biology-facing biomedical AI workflow, not to provide clinical or production guidance.
 
@@ -65,6 +66,7 @@ PubMed mode uses public title/abstract metadata only. The default mode remains t
 │       ├── retrieval.py           # Lexical + concept-aware retrievers
 │       ├── embedding.py           # Optional embedding retriever ([semantic] extra)
 │       ├── evidence.py            # Evidence card generation
+│       ├── extraction.py          # Optional model-backed claim extractor ([llm] extra)
 │       ├── quant.py               # Quantitative parameter extraction
 │       ├── pubmed.py              # Optional PubMed metadata retrieval
 │       ├── evaluation.py          # Entity-linking / retrieval / stance / quant evaluation
@@ -96,6 +98,12 @@ python -m biomedical_evidence_agent.cli --claim "..." --retriever lexical
 # Optional embedding retriever (needs the semantic extra)
 python -m pip install -e '.[semantic]'
 python -m biomedical_evidence_agent.cli --claim "..." --retriever embedding
+
+# Model-backed claim extractor. 'mock-llm' runs the full grounding pipeline
+# offline; 'llm' uses a real model (needs the llm extra + ANTHROPIC_API_KEY).
+python -m biomedical_evidence_agent.cli --claim "..." --extractor mock-llm
+python -m pip install -e '.[llm]'
+python -m biomedical_evidence_agent.cli --claim "..." --extractor llm
 
 # Evaluation suite: entity linking, retrieval ablation, stance guardrails, quantitative
 python -m biomedical_evidence_agent.evaluation
