@@ -468,21 +468,38 @@ def main() -> None:
 
     stance_cases = load_stance_cases()
     responder = heuristic_responder()
-    mock_stance = evaluate_stance(
-        records, stance_cases, extractor=LLMClaimExtractor(responder=responder)
+    mock_unguarded = evaluate_stance(
+        records,
+        stance_cases,
+        extractor=LLMClaimExtractor(responder=responder, guard=False),
+    )
+    mock_hybrid = evaluate_stance(
+        records,
+        stance_cases,
+        extractor=LLMClaimExtractor(responder=responder, guard=True),
     )
     faithfulness = evaluate_faithfulness(records, responder, stance_cases)
     print("")
-    print("# Claim Extractor Evaluation (deterministic vs mock-llm)")
-    print(f"- deterministic stance macro-F1: {stance_report.macro_f1:.3f}")
-    print(f"-     mock-llm stance macro-F1: {mock_stance.macro_f1:.3f}")
+    print("# Claim Extractor Evaluation")
     print(
-        f"- mock-llm faithfulness: {faithfulness['rate']:.3f} "
+        f"- deterministic:      macro-F1={stance_report.macro_f1:.3f} "
+        f"guardrail_leaks={stance_report.guardrail_violations}/{stance_report.guardrail_items}"
+    )
+    print(
+        f"- mock-llm (no guard): macro-F1={mock_unguarded.macro_f1:.3f} "
+        f"guardrail_leaks={mock_unguarded.guardrail_violations}/{mock_unguarded.guardrail_items}"
+    )
+    print(
+        f"- mock-llm (hybrid):  macro-F1={mock_hybrid.macro_f1:.3f} "
+        f"guardrail_leaks={mock_hybrid.guardrail_violations}/{mock_hybrid.guardrail_items}"
+    )
+    print(
+        f"- faithfulness (both mock paths): {faithfulness['rate']:.3f} "
         f"({faithfulness['faithful']}/{faithfulness['proposed']} quotes verbatim)"
     )
     print(
-        "  (mock-llm bypasses the deterministic attribution guards; a real LLM "
-        "backend replaces the responder — the faithfulness guard is what stays.)"
+        "  (hybrid re-applies the entity-grounding + polarity guards on top of the "
+        "responder; faithfulness is guard-independent. A real LLM replaces the mock.)"
     )
 
 

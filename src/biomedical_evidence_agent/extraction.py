@@ -4,10 +4,15 @@ import json
 from typing import Callable
 
 from .evidence import (
+    _claim_anchors,
     _concepts_by_type,
     _confidence,
+    _entity_grounded,
     _evidence_tier,
+    _expand_terms,
     _facets,
+    _gene_tokens,
+    _outcome_polarity,
     _sentence_spans,
 )
 from .ontology import Ontology
@@ -64,14 +69,27 @@ class ExtractorUnavailable(RuntimeError):
 class LLMClaimExtractor:
     """Turns a responder's raw quotes into grounded, verifiable EvidenceClaims.
 
-    The faithfulness guard is the core: a quote is kept only if it is a verbatim
-    span of the cited abstract. Hallucinated or altered quotes are dropped, so a
-    model can be swapped in without weakening the card's provenance guarantee.
+    Two guards sit on top of the responder's judgment. The faithfulness guard is
+    the core: a quote is kept only if it is a verbatim span of the cited abstract,
+    so a model can be swapped in without weakening the card's provenance
+    guarantee. The optional attribution guard (``guard=True``, the hybrid path)
+    additionally re-applies the deterministic entity-grounding and outcome-polarity
+    checks, demoting a proposed 'supports'/'conflicts' to 'insufficient' when the
+    quote does not name the claim's principal entity or describes the opposite
+    outcome. Guards only ever demote — they never promote a stance the model
+    didn't claim.
     """
 
-    def __init__(self, *, responder: Responder, ontology: Ontology | None = None):
+    def __init__(
+        self,
+        *,
+        responder: Responder,
+        ontology: Ontology | None = None,
+        guard: bool = True,
+    ):
         self._responder = responder
         self._ontology = ontology or Ontology.load()
+        self._guard = guard
 
     def extract(self, claim: str, retrieved: list[RetrievedRecord]) -> list[EvidenceClaim]:
         claims, _proposed = self.extract_with_stats(claim, retrieved)
@@ -86,17 +104,30 @@ class LLMClaimExtractor:
         faithfulness check — the signal a faithfulness metric reports on.
         """
 
+        anchors = None
+        claim_polarity = None
+        if self._guard:
+            query_terms = _expand_terms(claim)
+            anchors = _claim_anchors(claim, query_terms, self._ontology)
+            claim_polarity = _outcome_polarity(query_terms)
+
         claims: list[EvidenceClaim] = []
         proposed = 0
         for item in retrieved:
             for raw in self._responder(claim, item.record) or []:
                 proposed += 1
-                grounded = self._ground(raw, item)
+                grounded = self._ground(raw, item, anchors, claim_polarity)
                 if grounded is not None:
                     claims.append(grounded)
         return claims, proposed
 
-    def _ground(self, raw: dict, item: RetrievedRecord) -> EvidenceClaim | None:
+    def _ground(
+        self,
+        raw: dict,
+        item: RetrievedRecord,
+        anchors: dict[str, set[str]] | None,
+        claim_polarity: str | None,
+    ) -> EvidenceClaim | None:
         quote = (raw.get("quote") or "").strip()
         if not quote:
             return None
@@ -106,12 +137,14 @@ class LLMClaimExtractor:
         stance = raw.get("stance")
         if stance not in STANCES:
             stance = "insufficient"
-        tier = _evidence_tier(item.record)
-        facets = _facets(set(tokenize(quote)))
         typed = _concepts_by_type(quote, self._ontology)
+        if anchors is not None and stance in ("supports", "conflicts"):
+            stance = self._guarded_stance(quote, typed, anchors, claim_polarity, stance)
         anchor_categories = sum(
             1 for category in ("gene", "drug", "disease") if typed[category]
         )
+        tier = _evidence_tier(item.record)
+        facets = _facets(set(tokenize(quote)))
         return EvidenceClaim(
             text=quote,
             source_id=item.record.id,
@@ -129,6 +162,23 @@ class LLMClaimExtractor:
             start=start,
             end=start + len(quote),
         )
+
+    def _guarded_stance(
+        self,
+        quote: str,
+        typed: dict[str, set[str]],
+        anchors: dict[str, set[str]],
+        claim_polarity: str | None,
+        stance: str,
+    ) -> str:
+        """Demote an on-claim stance to insufficient if the guards don't hold."""
+
+        if not _entity_grounded(_gene_tokens(quote), typed, anchors):
+            return "insufficient"
+        quote_polarity = _outcome_polarity(_expand_terms(quote))
+        if claim_polarity and quote_polarity and claim_polarity != quote_polarity:
+            return "insufficient"
+        return stance
 
 
 def anthropic_responder(*, model: str = DEFAULT_MODEL, api_key: str | None = None) -> Responder:
