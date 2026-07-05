@@ -10,16 +10,15 @@ The main workflow is claim-centered evidence synthesis: given a biomedical claim
 
 ## What It Demonstrates
 
-- Retrieval over PubMed-abstract-style sample records, with abbreviation/synonym expansion (e.g. `NSCLC` ↔ `non-small cell lung cancer`, `TKI` ↔ `tyrosine kinase inhibitor`)
-- Evidence card generation for gene, disease, and drug questions
-- Claim extraction from retrieved abstracts
-- Claim-centered evidence grouping into supporting, conflicting, and insufficient/indirect evidence
+- Ontology-based entity normalization: abbreviations, synonyms, and brand/generic forms (`AZD9291` / `osimertinib` / `Tagrisso`) resolve to one concept id with UniProt/ChEMBL/MeSH cross-references — the same-entity backbone for evidence integration
+- Retrieval over PubMed-abstract-style sample records, in a lexical, a concept-aware (ontology-grounded), and an optional embedding flavor
+- Claim-centered evidence grouping into supporting, conflicting, and insufficient/indirect evidence, with attribution guards (entity grounding + outcome polarity) that generalize beyond oncology
+- Provenance spans (`source_id@start-end`) back to the source text for every extracted sentence
+- Evidence-tier weighting by study design (`clinical` > `in_vivo` > `association` > `in_vitro` > `in_silico`) folded into confidence
 - Multi-angle evidence facets (mechanism, clinical, biomarker, method) and an "Evidence by Angle" view
-- Verifiable `source@start-end` character-span provenance for every extracted evidence sentence
-- Evidence type and strength-based confidence labeling
-- An evaluation runner reporting retrieval hit@k, term coverage, and stance-attribution recall
+- Quantitative pharmacology extraction (IC50, EC50, Ki, Cmax, half-life, ...) with value, unit, and per-compound attribution for cross-compound comparison
 - Optional PubMed title/abstract retrieval using public metadata only
-- A small evaluation set for retrieval and claim-support checks
+- A four-part evaluation suite (entity linking, retrieval ablation, stance with guardrails, quantitative)
 
 The implementation is intentionally compact. It is meant to show the shape of a biology-facing biomedical AI workflow, not to provide clinical or production guidance.
 
@@ -50,28 +49,37 @@ PubMed mode uses public title/abstract metadata only. The default mode remains t
 .
 ├── data/
 │   ├── sample_corpus.jsonl        # Toy biomedical abstract records
-│   └── evaluation_claims.jsonl    # Small retrieval/claim evaluation set
+│   ├── ontology.jsonl             # Curated concept registry (ids + xrefs)
+│   ├── evaluation_claims.jsonl    # Retrieval evaluation set
+│   ├── evaluation_entities.jsonl  # Entity-linking evaluation set
+│   ├── evaluation_stances.jsonl   # Stance + guardrail evaluation set
+│   └── evaluation_quant.jsonl     # Quantitative-extraction evaluation set
 ├── docs/
 │   ├── architecture.md            # Workflow and component design
-│   └── example_output.md          # Example evidence card
+│   └── example_output.md          # Example evidence cards
 ├── src/
 │   └── biomedical_evidence_agent/
-│       ├── aliases.py             # Abbreviation/synonym expansion map
 │       ├── cli.py                 # Command-line entry point
-│       ├── evaluation.py          # Retrieval and attribution evaluation runner
+│       ├── ontology.py            # Concept normalization
+│       ├── retrieval.py           # Lexical + concept-aware retrievers
+│       ├── embedding.py           # Optional embedding retriever ([semantic] extra)
 │       ├── evidence.py            # Evidence card generation
+│       ├── quant.py               # Quantitative parameter extraction
 │       ├── pubmed.py              # Optional PubMed metadata retrieval
-│       ├── retrieval.py           # Lightweight lexical retriever
+│       ├── evaluation.py          # Entity-linking / retrieval / stance / quant evaluation
 │       └── schemas.py             # Dataclasses for records and cards
 └── tests/
-    └── test_pipeline.py
+    ├── test_pipeline.py
+    └── test_ontology.py
 ```
 
 ## Design Notes
 
-The current code uses deterministic extraction, stance labeling, and lexical retrieval so the repository can run without API keys. In a real LLM workflow, the deterministic `extract_claims` step can be replaced with a model-backed extractor while keeping the same structured evidence card interface.
+The default workflow uses deterministic extraction, stance labeling, and concept-aware lexical retrieval so the repository runs without API keys or network access. In a real LLM workflow, the deterministic `extract_claims` step can be replaced with a model-backed extractor while keeping the same structured evidence card interface.
 
-See [docs/example_output.md](docs/example_output.md) for a compact example evidence card.
+Entity normalization is the same-entity backbone: concepts carry a local id plus external cross-references, so the curated registry can be swapped for a real terminology service without changing the id contract. The bundled xref ids are illustrative demo data, not an authoritative mapping.
+
+See [docs/example_output.md](docs/example_output.md) for compact example evidence cards, and [docs/architecture.md](docs/architecture.md) for the component design.
 
 ## Local Usage
 
@@ -80,7 +88,17 @@ Python 3.10 or newer is recommended.
 ```bash
 python -m pip install -e .
 python -m biomedical_evidence_agent.cli --claim "BRAF melanoma is associated with response to targeted inhibitor treatment." --top-k 3
+
+# Retriever flavor for the local corpus (default: concept)
+python -m biomedical_evidence_agent.cli --claim "..." --retriever lexical
+
+# Optional embedding retriever (needs the semantic extra)
+python -m pip install -e '.[semantic]'
+python -m biomedical_evidence_agent.cli --claim "..." --retriever embedding
+
+# Evaluation suite: entity linking, retrieval ablation, stance guardrails, quantitative
 python -m biomedical_evidence_agent.evaluation
+
 python -m unittest discover -s tests
 ```
 
