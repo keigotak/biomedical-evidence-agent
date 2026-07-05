@@ -4,6 +4,34 @@ from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True)
+class Concept:
+    """A normalized biomedical concept with a local id and external cross-refs.
+
+    The local ``id`` (``BEA:<type>:<slug>``) is the stable resolution unit used
+    across retrieval, attribution, and evaluation. ``xrefs`` map that local id to
+    external authorities (UniProt, ChEMBL, MeSH, HGNC) so the registry can later
+    be swapped for a real ontology service without changing the id contract.
+    """
+
+    id: str
+    type: str
+    canonical: str
+    surface_forms: tuple[str, ...] = ()
+    xrefs: dict[str, str] = field(default_factory=dict)
+    targets: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class ConceptMatch:
+    """A concept resolved to a character span in a source text."""
+
+    concept: Concept
+    surface: str
+    start: int
+    end: int
+
+
+@dataclass(frozen=True)
 class CorpusRecord:
     id: str
     title: str
@@ -11,6 +39,7 @@ class CorpusRecord:
     entities: dict[str, list[str]]
     abstract: str
     evidence_type: str
+    study_design: str = ""
 
 
 @dataclass(frozen=True)
@@ -27,8 +56,30 @@ class EvidenceClaim:
     confidence: str
     stance: str = "insufficient"
     facets: tuple[str, ...] = ()
+    tier: str = "unspecified"
     start: int = 0
     end: int = 0
+
+
+@dataclass(frozen=True)
+class QuantMeasurement:
+    """A quantitative pharmacology parameter extracted from a source sentence.
+
+    Captures potency and PK values (IC50, EC50, Ki, Cmax, half-life, ...) with
+    their relation and unit, plus the compound/target context they belong to, so
+    values are comparable across compounds and assays instead of buried in prose.
+    """
+
+    parameter: str
+    relation: str
+    value: float
+    unit: str
+    source_id: str
+    primary_entity: str | None = None
+    entity_ids: tuple[str, ...] = ()
+    start: int = 0
+    end: int = 0
+    raw: str = ""
 
 
 @dataclass(frozen=True)
@@ -40,3 +91,4 @@ class EvidenceCard:
     source: str = "sample"
     limitations: list[str] = field(default_factory=list)
     next_checks: list[str] = field(default_factory=list)
+    measurements: list[QuantMeasurement] = field(default_factory=list)

@@ -1,0 +1,24 @@
+{"id":"BEA:gene:egfr","type":"gene","canonical":"EGFR","surface_forms":["EGFR","epidermal growth factor receptor","ERBB1","HER1"],"xrefs":{"uniprot":"P00533","hgnc":"HGNC:3236"}}
+{"id":"BEA:gene:braf","type":"gene","canonical":"BRAF","surface_forms":["BRAF","B-RAF","B-Raf proto-oncogene"],"xrefs":{"uniprot":"P15056","hgnc":"HGNC:1097"}}
+{"id":"BEA:gene:tp53","type":"gene","canonical":"TP53","surface_forms":["TP53","p53","tumor protein p53"],"xrefs":{"uniprot":"P04637","hgnc":"HGNC:11998"}}
+{"id":"BEA:gene:il6","type":"gene","canonical":"IL6","surface_forms":["IL6","IL-6","interleukin 6","interleukin-6"],"xrefs":{"uniprot":"P05231","hgnc":"HGNC:6018"}}
+{"id":"BEA:gene:tnf","type":"gene","canonical":"TNF","surface_forms":["TNF","TNF-alpha","tumor necrosis factor"],"xrefs":{"uniprot":"P01375","hgnc":"HGNC:11892"}}
+{"id":"BEA:gene:hla-a","type":"gene","canonical":"HLA-A","surface_forms":["HLA-A"],"xrefs":{"uniprot":"P04439","hgnc":"HGNC:4931"}}
+{"id":"BEA:gene:hla-b","type":"gene","canonical":"HLA-B","surface_forms":["HLA-B"],"xrefs":{"uniprot":"P01889","hgnc":"HGNC:4932"}}
+{"id":"BEA:gene:adrb2","type":"gene","canonical":"ADRB2","surface_forms":["ADRB2","beta-2 adrenergic receptor","beta2 adrenergic receptor","beta-2 adrenoceptor"],"xrefs":{"uniprot":"P07550","hgnc":"HGNC:286"}}
+{"id":"BEA:drug:osimertinib","type":"drug","canonical":"osimertinib","surface_forms":["osimertinib","AZD9291","Tagrisso"],"xrefs":{"chembl":"CHEMBL3353410","mesh":"D000077866"},"targets":["BEA:gene:egfr"]}
+{"id":"BEA:drug:erlotinib","type":"drug","canonical":"erlotinib","surface_forms":["erlotinib","Tarceva"],"xrefs":{"chembl":"CHEMBL553","mesh":"D000069347"},"targets":["BEA:gene:egfr"]}
+{"id":"BEA:drug:gefitinib","type":"drug","canonical":"gefitinib","surface_forms":["gefitinib","Iressa"],"xrefs":{"chembl":"CHEMBL939","mesh":"D000077156"},"targets":["BEA:gene:egfr"]}
+{"id":"BEA:drug:vemurafenib","type":"drug","canonical":"vemurafenib","surface_forms":["vemurafenib","Zelboraf"],"xrefs":{"chembl":"CHEMBL1229517","mesh":"D000068196"},"targets":["BEA:gene:braf"]}
+{"id":"BEA:drug:dabrafenib","type":"drug","canonical":"dabrafenib","surface_forms":["dabrafenib","Tafinlar"],"xrefs":{"chembl":"CHEMBL2028663","mesh":"D000069593"},"targets":["BEA:gene:braf"]}
+{"id":"BEA:drug:salbutamol","type":"drug","canonical":"salbutamol","surface_forms":["salbutamol","albuterol","Ventolin"],"xrefs":{"chembl":"CHEMBL714","mesh":"D000420"},"targets":["BEA:gene:adrb2"]}
+{"id":"BEA:drug_class:tki","type":"drug_class","canonical":"tyrosine kinase inhibitor","surface_forms":["tyrosine kinase inhibitor","tyrosine kinase inhibitors","TKI","TKIs"],"xrefs":{"mesh":"D000077606"}}
+{"id":"BEA:drug_class:egfr_inhibitor","type":"drug_class","canonical":"EGFR inhibitor","surface_forms":["EGFR inhibitor","EGFR inhibitors"],"xrefs":{},"targets":["BEA:gene:egfr"]}
+{"id":"BEA:drug_class:braf_inhibitor","type":"drug_class","canonical":"BRAF inhibitor","surface_forms":["BRAF inhibitor","BRAF inhibitors"],"xrefs":{},"targets":["BEA:gene:braf"]}
+{"id":"BEA:drug_class:targeted_therapy","type":"drug_class","canonical":"targeted therapy","surface_forms":["targeted therapy","targeted therapies","targeted inhibitor","targeted inhibitors"],"xrefs":{}}
+{"id":"BEA:disease:nsclc","type":"disease","canonical":"non-small cell lung cancer","surface_forms":["non-small cell lung cancer","non small cell lung cancer","NSCLC"],"xrefs":{"mesh":"D002289"}}
+{"id":"BEA:disease:melanoma","type":"disease","canonical":"melanoma","surface_forms":["melanoma"],"xrefs":{"mesh":"D008545"}}
+{"id":"BEA:disease:breast_cancer","type":"disease","canonical":"breast cancer","surface_forms":["breast cancer","breast carcinoma"],"xrefs":{"mesh":"D001943"}}
+{"id":"BEA:disease:colorectal_cancer","type":"disease","canonical":"colorectal cancer","surface_forms":["colorectal cancer"],"xrefs":{"mesh":"D015179"}}
+{"id":"BEA:disease:solid_tumor","type":"disease","canonical":"solid tumor","surface_forms":["solid tumor","solid tumors"],"xrefs":{}}
+{"id":"BEA:disease:inflammatory_disease","type":"disease","canonical":"inflammatory disease","surface_forms":["inflammatory disease","inflammatory diseases"],"xrefs":{"mesh":"D007249"}}
