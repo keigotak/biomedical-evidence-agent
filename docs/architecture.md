@@ -20,6 +20,8 @@ User query or biomedical claim
 
 `retrieval.py` implements a small TF-IDF-style lexical retriever using only the Python standard library. It ranks sample abstracts by overlap with the query and returns scored records.
 
+Both queries and documents are expanded with a small alias map (`aliases.py`) that bridges abbreviations, full names, and drug/class synonyms to a shared canonical tag (e.g. `NSCLC` ↔ `non-small cell lung cancer`, `TKI` ↔ `tyrosine kinase inhibitor`, `osimertinib` ↔ `EGFR`). This lets a claim written with abbreviations retrieve and ground against records that spell the terms out in full.
+
 ### PubMed Tool
 
 `pubmed.py` implements an optional public-metadata retrieval path using NCBI E-utilities. It fetches title, abstract, PMID, and year metadata only. The default workflow does not require network access.
@@ -33,9 +35,11 @@ Stance labeling applies two attribution guards before a sentence can count as su
 - **Entity grounding:** the sentence must mention the claim's principal entity (gene/variant token, or disease term when the claim names no gene). This prevents cross-entity mis-attribution, e.g. a `BRAF` sentence being attributed to an `EGFR` claim.
 - **Outcome polarity:** the claim's therapeutic direction (`response` vs `resistance`) is compared with the sentence's. A sentence describing the opposite outcome is demoted to insufficient/indirect rather than counted as support, so a `response` sentence does not support a `resistance` claim.
 
+Each extracted sentence is also tagged with one or more evidence **facets** — `mechanism`, `clinical`, `biomarker`, `method` — so the same claim can be examined from multiple angles independently of its stance.
+
 ### Evidence Card
 
-The evidence card is the primary output object. It contains the query or claim, retrieved records, extracted evidence sentences grouped by stance, confidence labels, limitations, and suggested next checks.
+The evidence card is the primary output object. It contains the query or claim, retrieved records, extracted evidence sentences grouped by stance, per-sentence facet tags, confidence labels, limitations, and suggested next checks. The card also renders an "Evidence by Angle" view that regroups the on-claim (supporting and conflicting) evidence by facet, so a reader can see whether support is one-dimensional or converges across mechanism, clinical, and biomarker lines.
 
 ### Evaluation
 

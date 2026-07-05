@@ -6,6 +6,7 @@ import re
 from collections import Counter
 from pathlib import Path
 
+from .aliases import alias_tags
 from .schemas import CorpusRecord, RetrievedRecord
 
 TOKEN_RE = re.compile(r"[A-Za-z0-9]+(?:-[A-Za-z0-9]+)?")
@@ -13,6 +14,12 @@ TOKEN_RE = re.compile(r"[A-Za-z0-9]+(?:-[A-Za-z0-9]+)?")
 
 def tokenize(text: str) -> list[str]:
     return [token.lower() for token in TOKEN_RE.findall(text)]
+
+
+def analyze(text: str) -> list[str]:
+    """Tokenize ``text`` and append canonical alias tags for abbreviations."""
+
+    return tokenize(text) + alias_tags(text)
 
 
 def load_corpus(path: Path) -> list[CorpusRecord]:
@@ -38,11 +45,11 @@ def load_corpus(path: Path) -> list[CorpusRecord]:
 class LexicalRetriever:
     def __init__(self, records: list[CorpusRecord]):
         self.records = records
-        self._doc_tokens = [tokenize(self._record_text(record)) for record in records]
+        self._doc_tokens = [analyze(self._record_text(record)) for record in records]
         self._idf = self._build_idf(self._doc_tokens)
 
     def search(self, query: str, top_k: int = 3) -> list[RetrievedRecord]:
-        query_weights = self._weights(tokenize(query))
+        query_weights = self._weights(analyze(query))
         ranked: list[RetrievedRecord] = []
         for record, tokens in zip(self.records, self._doc_tokens):
             score = self._cosine(query_weights, self._weights(tokens))
