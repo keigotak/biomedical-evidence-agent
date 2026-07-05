@@ -15,7 +15,9 @@ The main workflow is claim-centered evidence synthesis: given a biomedical claim
 - Claim extraction from retrieved abstracts
 - Claim-centered evidence grouping into supporting, conflicting, and insufficient/indirect evidence
 - Multi-angle evidence facets (mechanism, clinical, biomarker, method) and an "Evidence by Angle" view
-- Evidence type and confidence labeling
+- Verifiable `source@start-end` character-span provenance for every extracted evidence sentence
+- Evidence type and strength-based confidence labeling
+- An evaluation runner reporting retrieval hit@k, term coverage, and stance-attribution recall
 - Optional PubMed title/abstract retrieval using public metadata only
 - A small evaluation set for retrieval and claim-support checks
 
@@ -54,7 +56,9 @@ PubMed mode uses public title/abstract metadata only. The default mode remains t
 │   └── example_output.md          # Example evidence card
 ├── src/
 │   └── biomedical_evidence_agent/
+│       ├── aliases.py             # Abbreviation/synonym expansion map
 │       ├── cli.py                 # Command-line entry point
+│       ├── evaluation.py          # Retrieval and attribution evaluation runner
 │       ├── evidence.py            # Evidence card generation
 │       ├── pubmed.py              # Optional PubMed metadata retrieval
 │       ├── retrieval.py           # Lightweight lexical retriever
@@ -76,6 +80,7 @@ Python 3.10 or newer is recommended.
 ```bash
 python -m pip install -e .
 python -m biomedical_evidence_agent.cli --claim "BRAF melanoma is associated with response to targeted inhibitor treatment." --top-k 3
+python -m biomedical_evidence_agent.evaluation
 python -m unittest discover -s tests
 ```
 

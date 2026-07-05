@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
+from biomedical_evidence_agent.evaluation import evaluate, load_eval
 from biomedical_evidence_agent.evidence import build_evidence_card, render_markdown
 from biomedical_evidence_agent.pubmed import _efetch
 from biomedical_evidence_agent.retrieval import LexicalRetriever, load_corpus
@@ -126,8 +127,8 @@ class PipelineTest(unittest.TestCase):
         # view intentionally re-lists the same sentences grouped by facet.
         stance_sections = render_markdown(card).split("## Evidence by Angle")[0]
 
-        self.assertLessEqual(stance_sections.count("| toy-002]"), 2)
-        self.assertLessEqual(stance_sections.count("| toy-006]"), 2)
+        self.assertLessEqual(stance_sections.count("toy-002@"), 2)
+        self.assertLessEqual(stance_sections.count("toy-006@"), 2)
 
     def test_workflow_claim_can_be_supporting_evidence(self) -> None:
         records = load_corpus(ROOT / "data" / "sample_corpus.jsonl")
@@ -141,6 +142,40 @@ class PipelineTest(unittest.TestCase):
         supporting = [item for item in card.claims if item.stance == "supports"]
         self.assertTrue(supporting)
         self.assertEqual(supporting[0].source_id, "toy-003")
+
+    def test_claims_carry_verifiable_source_spans(self) -> None:
+        records = load_corpus(ROOT / "data" / "sample_corpus.jsonl")
+        by_id = {record.id: record for record in records}
+        claim = "BRAF melanoma is associated with response to targeted inhibitor treatment."
+        results = LexicalRetriever(records).search(claim, top_k=4)
+        card = build_evidence_card(query=claim, retrieved=results, claim=claim)
+
+        self.assertTrue(card.claims)
+        for item in card.claims:
+            abstract = by_id[item.source_id].abstract
+            self.assertGreaterEqual(item.start, 0)
+            self.assertLessEqual(item.end, len(abstract))
+            self.assertEqual(abstract[item.start : item.end], item.text)
+
+    def test_confidence_reflects_stance_not_only_score(self) -> None:
+        records = load_corpus(ROOT / "data" / "sample_corpus.jsonl")
+        claim = "BRAF melanoma is associated with response to targeted inhibitor treatment."
+        results = LexicalRetriever(records).search(claim, top_k=4)
+        card = build_evidence_card(query=claim, retrieved=results, claim=claim)
+
+        supporting = next(item for item in card.claims if item.stance == "supports")
+        self.assertEqual(supporting.confidence, "high")
+
+    def test_evaluation_reports_retrieval_and_stance_metrics(self) -> None:
+        records = load_corpus(ROOT / "data" / "sample_corpus.jsonl")
+        eval_items = load_eval(ROOT / "data" / "evaluation_claims.jsonl")
+        results = evaluate(records, eval_items, top_k=4)
+
+        self.assertEqual(len(results), len(eval_items))
+        self.assertTrue(all(result.retrieval_hit == 1.0 for result in results))
+        stance_scored = [r for r in results if r.stance_recall is not None]
+        self.assertTrue(stance_scored)
+        self.assertTrue(all(r.stance_recall == 1.0 for r in stance_scored))
 
     def test_pubmed_xml_records_are_mapped_to_corpus_records(self) -> None:
         xml = """<?xml version="1.0" ?>
