@@ -83,6 +83,35 @@ class QuantMeasurement:
 
 
 @dataclass(frozen=True)
+class DossierCompound:
+    """A modulator of a target, with any quantitative evidence against it."""
+
+    concept_id: str
+    name: str
+    declared_target: bool
+    measurements: tuple[QuantMeasurement, ...] = ()
+
+
+@dataclass(frozen=True)
+class TargetDossier:
+    """A target-centric roll-up: everything the corpus says about one target.
+
+    Pivots from a single claim to a normalized target concept and aggregates the
+    modulators, disease contexts, evidence angles, and study tiers across every
+    record that mentions it — the entity normalization backbone made queryable.
+    """
+
+    target_id: str
+    target_name: str
+    xrefs: dict[str, str]
+    record_ids: tuple[str, ...]
+    compounds: tuple[DossierCompound, ...]
+    diseases: tuple[str, ...]
+    angles: dict[str, tuple[str, ...]]
+    tiers: dict[str, int]
+
+
+@dataclass(frozen=True)
 class Verdict:
     """A weighted assessment of a claim from its supporting/conflicting evidence.
 

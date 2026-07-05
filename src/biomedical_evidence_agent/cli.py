@@ -46,6 +46,10 @@ def main() -> None:
     query_group = parser.add_mutually_exclusive_group(required=True)
     query_group.add_argument("--query", help="Biomedical evidence question or topic.")
     query_group.add_argument("--claim", help="Biomedical claim to review against retrieved evidence.")
+    query_group.add_argument(
+        "--target",
+        help="Build a target-centric dossier (local corpus only), e.g. 'EGFR'.",
+    )
     parser.add_argument("--top-k", type=int, default=3, help="Number of records to retrieve.")
     parser.add_argument(
         "--source",
@@ -79,6 +83,17 @@ def main() -> None:
         ),
     )
     args = parser.parse_args()
+
+    if args.target:
+        from .dossier import DossierError, build_target_dossier, render_dossier
+
+        records = load_corpus(args.corpus)
+        try:
+            dossier = build_target_dossier(args.target, records)
+        except DossierError as exc:
+            raise SystemExit(str(exc)) from exc
+        print(render_dossier(dossier))
+        return
 
     query = args.claim or args.query
     if args.source == "pubmed":
