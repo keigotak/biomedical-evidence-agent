@@ -3,8 +3,37 @@ from __future__ import annotations
 import re
 
 from .aliases import alias_tags
+from .ontology import Ontology
+from .quant import extract_measurements
 from .retrieval import tokenize
-from .schemas import EvidenceCard, EvidenceClaim, RetrievedRecord
+from .schemas import (
+    CorpusRecord,
+    EvidenceCard,
+    EvidenceClaim,
+    QuantMeasurement,
+    RetrievedRecord,
+)
+
+GENE_TOKEN_RE = re.compile(r"[A-Za-z0-9]+(?:-[A-Za-z0-9]+)?")
+
+# Evidence-tier strength weights. Study design is the primary determinant of how
+# much a sentence should move confidence: a clinical cohort outweighs an in vitro
+# assay, which outweighs an in silico prediction. Weights are centered on 0.5 so
+# a tier can push confidence up or down relative to a neutral baseline.
+TIER_WEIGHT: dict[str, float] = {
+    "clinical": 1.0,
+    "in_vivo": 0.7,
+    "association": 0.6,
+    "in_vitro": 0.5,
+    "in_silico": 0.4,
+    "unspecified": 0.5,
+}
+_TIER_CUES: list[tuple[str, tuple[str, ...]]] = [
+    ("clinical", ("randomized", "clinical trial", "patients", "cohort")),
+    ("in_vivo", ("in vivo", "mouse", "murine", "xenograft")),
+    ("in_vitro", ("in vitro", "cell line", "cells", "assay")),
+    ("in_silico", ("prediction", "computational", "in silico", "workflow", "single-cell")),
+]
 
 SENTENCE_RE = re.compile(r"(?<=[.!?])\s+")
 CONFLICT_CUES = {
@@ -51,36 +80,6 @@ RESISTANCE_CUES = {
     "relapse",
     "resistance",
     "resistant",
-}
-DISEASE_TERMS = {
-    "cancer",
-    "carcinoma",
-    "cohort",
-    "disease",
-    "leukemia",
-    "lung",
-    "melanoma",
-    "nsclc",
-    "patients",
-    "tumor",
-    "tumors",
-}
-THERAPY_TERMS = {
-    "benefit",
-    "benefits",
-    "drug",
-    "drugs",
-    "efficacy",
-    "inhibitor",
-    "inhibitors",
-    "response",
-    "resistance",
-    "survival",
-    "targeted",
-    "therapies",
-    "therapy",
-    "treatment",
-    "treatments",
 }
 METHOD_TERMS = {
     "antigen",
@@ -197,20 +196,67 @@ def _expand_terms(text: str) -> set[str]:
     return set(tokenize(text)) | set(alias_tags(text))
 
 
+def _gene_tokens(text: str) -> set[str]:
+    """Heuristic gene/variant tokens: has a digit, or is an all-caps acronym."""
+
+    return {
+        token.lower()
+        for token in GENE_TOKEN_RE.findall(text)
+        if any(char.isdigit() for char in token) or (token.isupper() and len(token) >= 3)
+    }
+
+
+def _concepts_by_type(text: str, ontology: Ontology) -> dict[str, set[str]]:
+    typed: dict[str, set[str]] = {"gene": set(), "drug": set(), "disease": set()}
+    for concept_id in ontology.concept_ids(text):
+        concept_type = ontology.concepts[concept_id].type
+        if concept_type == "gene":
+            typed["gene"].add(concept_id)
+        elif concept_type in ("drug", "drug_class"):
+            typed["drug"].add(concept_id)
+        elif concept_type == "disease":
+            typed["disease"].add(concept_id)
+    return typed
+
+
+def _evidence_tier(record: CorpusRecord) -> str:
+    """Classify a record into an evidence tier from study design or text cues."""
+
+    if record.study_design in TIER_WEIGHT:
+        return record.study_design
+    haystack = f"{record.abstract} {record.evidence_type}".lower()
+    for tier, cues in _TIER_CUES:
+        if any(cue in haystack for cue in cues):
+            return tier
+    if "association" in record.evidence_type:
+        return "association"
+    return "unspecified"
+
+
 def build_evidence_card(
     query: str,
     retrieved: list[RetrievedRecord],
     *,
     claim: str | None = None,
     source: str = "sample",
+    ontology: Ontology | None = None,
 ) -> EvidenceCard:
-    claims = extract_claims(claim or query, retrieved)
+    ontology = ontology or Ontology.load()
+    claims = extract_claims(claim or query, retrieved, ontology=ontology)
+    measurements: list[QuantMeasurement] = []
+    for item in retrieved:
+        measurements.extend(
+            extract_measurements(
+                item.record.abstract, source_id=item.record.id, ontology=ontology
+            )
+        )
     return EvidenceCard(
         query=query,
         retrieved=retrieved,
         claims=claims,
         claim=claim,
         source=source,
+        measurements=measurements,
         limitations=[
             "Uses toy/sample abstracts by default; optional PubMed mode uses public metadata.",
             "Deterministic stance labeling is a scaffold for a future model-backed extractor.",
@@ -224,26 +270,39 @@ def build_evidence_card(
     )
 
 
-def extract_claims(query: str, retrieved: list[RetrievedRecord]) -> list[EvidenceClaim]:
+def extract_claims(
+    query: str,
+    retrieved: list[RetrievedRecord],
+    *,
+    ontology: Ontology | None = None,
+) -> list[EvidenceClaim]:
+    ontology = ontology or Ontology.load()
     query_terms = _expand_terms(query)
-    anchors = _claim_anchors(query, query_terms)
+    anchors = _claim_anchors(query, query_terms, ontology)
     claim_polarity = _outcome_polarity(query_terms)
     claims: list[EvidenceClaim] = []
     for item in retrieved:
+        tier = _evidence_tier(item.record)
         for sentence, start, end in _sentence_spans(item.record.abstract):
             base_terms = set(tokenize(sentence))
             sentence_terms = base_terms | set(alias_tags(sentence))
             if len(query_terms & sentence_terms) < 2:
                 continue
-            grounded = _entity_grounded(sentence_terms, anchors)
-            anchor_categories = _anchor_category_count(sentence_terms, anchors)
+            sentence_genes = _gene_tokens(sentence)
+            sentence_typed = _concepts_by_type(sentence, ontology)
+            sentence_methods = base_terms & METHOD_TERMS
+            grounded = _entity_grounded(sentence_genes, sentence_typed, anchors)
+            anchor_categories = _anchor_category_count(
+                sentence_genes, sentence_typed, sentence_methods, anchors
+            )
             facets = _facets(base_terms)
             stance = _stance(
                 sentence_terms,
-                anchors,
                 item.score,
                 claim_polarity=claim_polarity,
                 grounded=grounded,
+                anchor_categories=anchor_categories,
+                predicate_anchor=anchors["predicate"],
             )
             claims.append(
                 EvidenceClaim(
@@ -255,9 +314,11 @@ def extract_claims(query: str, retrieved: list[RetrievedRecord]) -> list[Evidenc
                         stance=stance,
                         anchor_categories=anchor_categories,
                         facet_count=len(facets),
+                        tier=tier,
                     ),
                     stance=stance,
                     facets=facets,
+                    tier=tier,
                     start=start,
                     end=end,
                 )
@@ -312,6 +373,7 @@ def render_markdown(card: EvidenceCard) -> str:
     _append_claim_group(lines, "Conflicting Evidence", card.claims, "conflicts")
     _append_claim_group(lines, "Insufficient or Indirect Evidence", card.claims, "insufficient")
     _append_facet_view(lines, card.claims)
+    _append_quant_view(lines, card.measurements)
 
     lines.extend(["", "## Limitations"])
     lines.extend(f"- {item}" for item in card.limitations)
@@ -326,13 +388,14 @@ def _confidence(
     stance: str,
     anchor_categories: int,
     facet_count: int,
+    tier: str,
 ) -> str:
-    """Grade evidence strength, not just retrieval rank.
+    """Grade evidence strength from relevance, decisiveness, grounding, and tier.
 
-    Combines retrieval relevance with how decisively the sentence takes a
-    stance, how many entity anchors it grounds against, and how many evidence
-    angles it covers, so the label reflects evidence quality rather than
-    keyword overlap alone.
+    Combines retrieval relevance with how decisively the sentence takes a stance,
+    how many entity anchors it grounds against, how many evidence angles it
+    covers, and the study-design tier, so the label reflects evidence quality
+    rather than keyword overlap alone.
     """
 
     strength = min(score, 0.6)
@@ -340,6 +403,7 @@ def _confidence(
         strength += 0.25
     strength += min(anchor_categories, 3) * 0.1
     strength += min(facet_count, 3) * 0.05
+    strength += (TIER_WEIGHT.get(tier, 0.5) - 0.5) * 0.4
     if strength >= 0.75:
         return "high"
     if strength >= 0.45:
@@ -349,14 +413,14 @@ def _confidence(
 
 def _stance(
     sentence_terms: set[str],
-    anchors: dict[str, set[str]],
     score: float,
     *,
     claim_polarity: str | None,
     grounded: bool,
+    anchor_categories: int,
+    predicate_anchor: set[str],
 ) -> str:
-    anchor_categories = _anchor_category_count(sentence_terms, anchors)
-    predicate_terms = anchors["predicate"] | PREDICATE_TERMS
+    predicate_terms = predicate_anchor | PREDICATE_TERMS
     predicate_overlap = bool(sentence_terms & predicate_terms)
     strong_predicate_overlap = len(sentence_terms & predicate_terms) >= 2
     if INSUFFICIENT_CUES & sentence_terms or score < 0.3:
@@ -388,35 +452,61 @@ def _outcome_polarity(terms: set[str]) -> str | None:
     return None
 
 
-def _entity_grounded(sentence_terms: set[str], anchors: dict[str, set[str]]) -> bool:
-    if anchors["gene"]:
-        return bool(sentence_terms & anchors["gene"])
+def _entity_grounded(
+    sentence_genes: set[str],
+    sentence_typed: dict[str, set[str]],
+    anchors: dict[str, set[str]],
+) -> bool:
+    """Require the sentence to name the claim's principal entity.
+
+    Grounding is checked by normalized concept identity (and gene tokens for
+    variants the ontology does not carry), so it generalizes across domains
+    instead of relying on an oncology-specific disease word list.
+    """
+
+    if anchors["gene"] or anchors["gene_concepts"]:
+        return bool(sentence_genes & anchors["gene"]) or bool(
+            sentence_typed["gene"] & anchors["gene_concepts"]
+        )
     if anchors["disease"]:
-        return bool(sentence_terms & anchors["disease"])
+        return bool(sentence_typed["disease"] & anchors["disease"])
+    if anchors["therapy"]:
+        return bool(sentence_typed["drug"] & anchors["therapy"])
     return True
 
 
-def _claim_anchors(query: str, query_terms: set[str]) -> dict[str, set[str]]:
-    gene_like = {
-        token.lower()
-        for token in re.findall(r"[A-Za-z0-9]+(?:-[A-Za-z0-9]+)?", query)
-        if any(char.isdigit() for char in token) or (token.isupper() and len(token) >= 3)
-    }
+def _claim_anchors(
+    query: str, query_terms: set[str], ontology: Ontology
+) -> dict[str, set[str]]:
+    typed = _concepts_by_type(query, ontology)
     return {
-        "gene": gene_like,
-        "disease": query_terms & DISEASE_TERMS,
-        "therapy": query_terms & THERAPY_TERMS,
+        "gene": _gene_tokens(query),
+        "gene_concepts": typed["gene"],
+        "disease": typed["disease"],
+        "therapy": typed["drug"],
         "method": query_terms & METHOD_TERMS,
-        "predicate": (query_terms & PREDICATE_TERMS) or (query_terms & THERAPY_TERMS),
+        "predicate": query_terms & PREDICATE_TERMS,
     }
 
 
-def _anchor_category_count(sentence_terms: set[str], anchors: dict[str, set[str]]) -> int:
-    return sum(
-        1
-        for category in ("gene", "disease", "therapy", "method")
-        if sentence_terms & anchors[category]
-    )
+def _anchor_category_count(
+    sentence_genes: set[str],
+    sentence_typed: dict[str, set[str]],
+    sentence_methods: set[str],
+    anchors: dict[str, set[str]],
+) -> int:
+    count = 0
+    if (sentence_genes & anchors["gene"]) or (
+        sentence_typed["gene"] & anchors["gene_concepts"]
+    ):
+        count += 1
+    if sentence_typed["disease"] & anchors["disease"]:
+        count += 1
+    if sentence_typed["drug"] & anchors["therapy"]:
+        count += 1
+    if sentence_methods & anchors["method"]:
+        count += 1
+    return count
 
 
 def _append_claim_group(
@@ -434,7 +524,7 @@ def _append_claim_group(
         facets = ", ".join(claim.facets) or "general"
         provenance = f"{claim.source_id}@{claim.start}-{claim.end}"
         lines.append(
-            f"- [{claim.confidence} | {claim.evidence_type} | {facets} | {provenance}] {claim.text}"
+            f"- [{claim.confidence} | {claim.tier} | {claim.evidence_type} | {facets} | {provenance}] {claim.text}"
         )
 
 
@@ -452,6 +542,26 @@ def _append_facet_view(lines: list[str], claims: list[EvidenceClaim]) -> None:
             lines.append(f"  - [{claim.stance} | {claim.source_id}] {claim.text}")
     if not printed:
         lines.append("- No supporting or conflicting evidence to group by angle yet.")
+
+
+def _append_quant_view(lines: list[str], measurements: list[QuantMeasurement]) -> None:
+    lines.extend(["", "## Quantitative Evidence"])
+    if not measurements:
+        lines.append("- No quantitative parameters extracted.")
+        return
+    # Group by parameter and sort by value so compounds are directly comparable.
+    by_parameter: dict[str, list[QuantMeasurement]] = {}
+    for measurement in measurements:
+        by_parameter.setdefault(measurement.parameter, []).append(measurement)
+    for parameter in sorted(by_parameter):
+        lines.append(f"- {parameter}:")
+        for measurement in sorted(by_parameter[parameter], key=lambda m: m.value):
+            entity = measurement.primary_entity or "unattributed"
+            provenance = f"{measurement.source_id}@{measurement.start}-{measurement.end}"
+            relation = "" if measurement.relation == "=" else measurement.relation
+            lines.append(
+                f"  - {entity}: {relation}{measurement.value:g} {measurement.unit} [{provenance}]"
+            )
 
 
 def _cap_per_source(claims: list[EvidenceClaim]) -> list[EvidenceClaim]:
