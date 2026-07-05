@@ -10,10 +10,11 @@ The main workflow is claim-centered evidence synthesis: given a biomedical claim
 
 ## What It Demonstrates
 
-- Retrieval over PubMed-abstract-style sample records
+- Retrieval over PubMed-abstract-style sample records, with abbreviation/synonym expansion (e.g. `NSCLC` ↔ `non-small cell lung cancer`, `TKI` ↔ `tyrosine kinase inhibitor`)
 - Evidence card generation for gene, disease, and drug questions
 - Claim extraction from retrieved abstracts
 - Claim-centered evidence grouping into supporting, conflicting, and insufficient/indirect evidence
+- Multi-angle evidence facets (mechanism, clinical, biomarker, method) and an "Evidence by Angle" view
 - Evidence type and confidence labeling
 - Optional PubMed title/abstract retrieval using public metadata only
 - A small evaluation set for retrieval and claim-support checks
