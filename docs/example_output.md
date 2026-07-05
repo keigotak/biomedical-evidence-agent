@@ -17,6 +17,10 @@ Source: sample
 Query: BRAF melanoma is associated with response to targeted inhibitor treatment.
 Claim: BRAF melanoma is associated with response to targeted inhibitor treatment.
 
+## Verdict
+- contested (strength +0.00) — supports: 1×clinical; conflicts: 1×clinical; 2 indirect
+- Weighted by study-design tier over independent sources; not clinical guidance.
+
 ## Retrieved Evidence
 - toy-006 (2024) score=0.5561: Conflicting toy evidence for a biomarker claim
 - toy-002 (2020) score=0.413: BRAF V600E as a biomarker in melanoma treatment
@@ -76,6 +80,7 @@ Values are lifted out of prose into structured records, attributed to the neares
 
 ## What To Notice
 
+- The card leads with a weighted verdict: here `contested`, because one clinical support is offset by one clinical conflict — a single in-vitro result could not have produced that balance.
 - The output is organized around a claim, not a generic keyword search.
 - Supporting and conflicting evidence are separated from indirect context, with cross-entity and opposite-polarity sentences demoted by attribution guards.
 - Each sentence carries a provenance span, an evidence tier, and a confidence grade.

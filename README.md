@@ -13,6 +13,7 @@ The main workflow is claim-centered evidence synthesis: given a biomedical claim
 - Ontology-based entity normalization: abbreviations, synonyms, and brand/generic forms (`AZD9291` / `osimertinib` / `Tagrisso`) resolve to one concept id with UniProt/ChEMBL/MeSH cross-references — the same-entity backbone for evidence integration
 - Retrieval over PubMed-abstract-style sample records, in a lexical, a concept-aware (ontology-grounded), and an optional embedding flavor
 - Claim-centered evidence grouping into supporting, conflicting, and insufficient/indirect evidence, with attribution guards (entity grounding + outcome polarity) that generalize beyond oncology
+- A weighted **verdict** that aggregates supporting vs conflicting evidence by study-design tier over independent sources into a graded, auditable bottom line (`well-supported` / `mixed` / `contested` / `insufficient`)
 - Provenance spans (`source_id@start-end`) back to the source text for every extracted sentence
 - Evidence-tier weighting by study design (`clinical` > `in_vivo` > `association` > `in_vitro` > `in_silico`) folded into confidence
 - Multi-angle evidence facets (mechanism, clinical, biomarker, method) and an "Evidence by Angle" view
@@ -54,7 +55,8 @@ PubMed mode uses public title/abstract metadata only. The default mode remains t
 │   ├── evaluation_claims.jsonl    # Retrieval evaluation set
 │   ├── evaluation_entities.jsonl  # Entity-linking evaluation set
 │   ├── evaluation_stances.jsonl   # Stance + guardrail evaluation set
-│   └── evaluation_quant.jsonl     # Quantitative-extraction evaluation set
+│   ├── evaluation_quant.jsonl     # Quantitative-extraction evaluation set
+│   └── evaluation_verdicts.jsonl  # Weighted-verdict evaluation set
 ├── docs/
 │   ├── architecture.md            # Workflow and component design
 │   └── example_output.md          # Example evidence cards

@@ -8,15 +8,19 @@ from biomedical_evidence_agent.evaluation import (
     evaluate_entity_linking,
     evaluate_quant,
     evaluate_stance,
+    evaluate_verdicts,
     load_entity_cases,
     load_quant_cases,
     load_retrieval_cases,
     load_stance_cases,
+    load_verdict_cases,
     retrieval_ablation,
 )
+from biomedical_evidence_agent.evidence import assess_verdict
 from biomedical_evidence_agent.ontology import Ontology
 from biomedical_evidence_agent.quant import extract_measurements
 from biomedical_evidence_agent.retrieval import ConceptAwareRetriever, load_corpus
+from biomedical_evidence_agent.schemas import EvidenceClaim
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -257,6 +261,56 @@ class QuantExtractionTest(unittest.TestCase):
         self.assertEqual(report.false_positives, 0)
         self.assertEqual(report.false_negatives, 0)
         self.assertEqual(report.f1, 1.0)
+
+
+class VerdictTest(unittest.TestCase):
+    @staticmethod
+    def _claim(source_id, stance, tier):
+        return EvidenceClaim(
+            text="x", source_id=source_id, evidence_type="t",
+            confidence="medium", stance=stance, tier=tier,
+        )
+
+    def test_a_strong_conflict_outweighs_many_weak_supports(self) -> None:
+        # Three in_silico supporting sentences from ONE source vs one clinical
+        # conflict: source-level, tier-weighted counting must not let the volume win.
+        claims = [
+            self._claim("s1", "supports", "in_silico"),
+            self._claim("s1", "supports", "in_silico"),
+            self._claim("s1", "supports", "in_silico"),
+            self._claim("c1", "conflicts", "clinical"),
+        ]
+        verdict = assess_verdict(claims)
+        # One in_silico source (0.4) vs one clinical source (1.0): net leans against.
+        self.assertEqual(verdict.support_sources, 1)
+        self.assertLess(verdict.strength, 0)
+
+    def test_balanced_clinical_evidence_is_contested(self) -> None:
+        verdict = assess_verdict([
+            self._claim("s1", "supports", "clinical"),
+            self._claim("c1", "conflicts", "clinical"),
+        ])
+        self.assertEqual(verdict.label, "contested")
+
+    def test_clean_support_is_well_supported(self) -> None:
+        verdict = assess_verdict([self._claim("s1", "supports", "clinical")])
+        self.assertEqual(verdict.label, "well-supported")
+        self.assertEqual(verdict.strength, 1.0)
+
+    def test_in_silico_only_is_insufficient(self) -> None:
+        verdict = assess_verdict([self._claim("s1", "supports", "in_silico")])
+        self.assertEqual(verdict.label, "insufficient")
+
+    def test_no_on_claim_evidence_is_insufficient(self) -> None:
+        verdict = assess_verdict([self._claim("s1", "insufficient", "clinical")])
+        self.assertEqual(verdict.label, "insufficient")
+        self.assertEqual(verdict.indirect_sentences, 1)
+
+    def test_verdict_evaluation_matches_gold(self) -> None:
+        records = load_corpus(ROOT / "data" / "sample_corpus.jsonl")
+        cases = load_verdict_cases(ROOT / "data" / "evaluation_verdicts.jsonl")
+        report = evaluate_verdicts(records, cases)
+        self.assertEqual(report.accuracy, 1.0)
 
 
 if __name__ == "__main__":

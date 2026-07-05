@@ -11,6 +11,7 @@ User query or biomedical claim
   -> claim extraction (deterministic, or optional model-backed with a citation-grounding guard)
   -> supporting / conflicting / insufficient grouping with attribution guards
   -> evidence-tier, facet, and confidence labeling with provenance spans
+  -> weighted verdict aggregating support vs conflict by tier over independent sources
   -> quantitative parameter extraction (IC50/EC50/Ki/Cmax/half-life/...)
   -> structured evidence card
   -> evaluation (entity linking / retrieval / stance / quantitative)
@@ -56,9 +57,13 @@ The deterministic extractor remains the default. On the toy stance benchmark the
 
 `quant.py` lifts quantitative pharmacology parameters out of prose into structured records: potency (IC50, EC50, Ki, Kd) and PK/exposure (Cmax, AUC, half-life, clearance, bioavailability), each with relation, value, unit, and a provenance span. Each measurement is attributed to the nearest preceding compound so values are comparable across compounds and assays.
 
+### Verdict
+
+`assess_verdict` in `evidence.py` aggregates the on-claim evidence into a single graded bottom line. Support and conflict are summed as **tier weights over independent sources** — each record counts once per stance, so many sentences from one weak study cannot outvote a single strong one, and an in-vitro result cannot bury a clinical contradiction. The net balance in `[-1, 1]` maps to `well-supported`, `mixed`, `contested` (substantial evidence on both sides), or `insufficient` (too little tier-weighted evidence to call a direction — e.g. an in-silico-only claim). The per-tier breakdown is shown alongside the label so the grade is auditable rather than a black-box score.
+
 ### Evidence Card
 
-The evidence card is the primary output object. It contains the query or claim, retrieved records, stance-grouped sentences with facet/tier/confidence/provenance, an "Evidence by Angle" facet view, a "Quantitative Evidence" comparison, limitations, and next checks.
+The evidence card is the primary output object. It leads with the verdict, then contains the query or claim, retrieved records, stance-grouped sentences with facet/tier/confidence/provenance, an "Evidence by Angle" facet view, a "Quantitative Evidence" comparison, limitations, and next checks.
 
 ### Evaluation
 
@@ -68,6 +73,7 @@ The evidence card is the primary output object. It contains the query or claim, 
 - **Retrieval:** Recall@k and MRR with a lexical / +concept / +embedding ablation (`data/evaluation_claims.jsonl`).
 - **Stance:** per-class precision/recall/F1 plus guardrail metrics — cross-entity and opposite-polarity leaks, target zero (`data/evaluation_stances.jsonl`).
 - **Quantitative:** precision/recall/F1 on extracted (parameter, value, unit) tuples, with a negative control (`data/evaluation_quant.jsonl`).
+- **Verdict:** label accuracy of the weighted verdict against gold, including a negative-control claim that must land on `insufficient` (`data/evaluation_verdicts.jsonl`).
 - **Extractor:** deterministic vs model-backed stance macro-F1, plus a **faithfulness rate** (fraction of a responder's proposed quotes that are verbatim in the source). The faithfulness metric is what a real model backend must be held to; the offline stand-in is faithful by construction and underperforms the deterministic guards on stance, which the ablation makes explicit.
 
 Run it with `python -m biomedical_evidence_agent.evaluation`.
