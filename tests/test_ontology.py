@@ -159,6 +159,34 @@ class LLMExtractorTest(unittest.TestCase):
             self.assertIn(claim.stance, ("supports", "conflicts", "insufficient"))
             self.assertGreaterEqual(claim.end, claim.start)
 
+    def test_hybrid_guard_demotes_cross_entity_support(self) -> None:
+        from biomedical_evidence_agent.extraction import LLMClaimExtractor
+
+        # A BRAF claim; the responder claims an EGFR sentence "supports" it.
+        claim = "BRAF is associated with response to targeted therapy."
+
+        def responder(_claim, record):
+            if record.id != "toy-001":
+                return []
+            return [{
+                "quote": "In this toy abstract, EGFR activating variants are "
+                         "associated with response to tyrosine kinase inhibitors "
+                         "in non-small cell lung cancer.",
+                "stance": "supports",
+                "rationale": "cross-entity: names EGFR, not BRAF",
+            }]
+
+        ranked = self._ranked(claim, k=5)
+        unguarded = LLMClaimExtractor(
+            responder=responder, ontology=self.ontology, guard=False
+        ).extract(claim, ranked)
+        hybrid = LLMClaimExtractor(
+            responder=responder, ontology=self.ontology, guard=True
+        ).extract(claim, ranked)
+        self.assertEqual([c.stance for c in unguarded], ["supports"])
+        # The hybrid guard demotes the cross-entity quote to insufficient.
+        self.assertEqual([c.stance for c in hybrid], ["insufficient"])
+
     def test_missing_backend_raises_clear_error(self) -> None:
         import builtins
 

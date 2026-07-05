@@ -45,7 +45,12 @@ Each sentence is tagged with evidence **facets** (`mechanism`, `clinical`, `biom
 
 ### Model-backed Extractor (optional)
 
-`extraction.py` is the model-backed alternative the deterministic scaffold was designed to make room for. `LLMClaimExtractor` takes an injected `responder` — a real Anthropic backend (behind the `llm` extra) or an offline stand-in — and turns its raw quotes into `EvidenceClaim`s. The core is a **citation-grounding / faithfulness guard**: a quote is kept only if it is a verbatim span of the cited abstract, so a hallucinated or altered quote is dropped rather than trusted. This lets a model be swapped in for stance judgment without weakening the card's provenance guarantee. The deterministic extractor remains the default; the LLM path trades the deterministic attribution guards for model judgment plus the faithfulness guard.
+`extraction.py` is the model-backed alternative the deterministic scaffold was designed to make room for. `LLMClaimExtractor` takes an injected `responder` — a real Anthropic backend (behind the `llm` extra) or an offline stand-in — and turns its raw quotes into `EvidenceClaim`s, behind two guards:
+
+- **Citation-grounding / faithfulness guard** (always on): a quote is kept only if it is a verbatim span of the cited abstract, so a hallucinated or altered quote is dropped rather than trusted. A model can be swapped in for stance judgment without weakening the card's provenance guarantee.
+- **Attribution guard** (`guard=True`, the hybrid path, default): the deterministic entity-grounding and outcome-polarity checks are re-applied on top of the model's stance, demoting a proposed `supports`/`conflicts` to `insufficient` when the quote does not name the claim's principal entity or describes the opposite outcome. Guards only demote, never promote.
+
+The deterministic extractor remains the default. On the toy stance benchmark the hybrid guard is what makes the model-backed path safe: an unguarded naive responder leaks every cross-entity/polarity case (guardrail 3/3, macro-F1 0.444), while the same responder under the hybrid guard leaks none (0/3, macro-F1 1.000) — faithfulness is 1.000 either way.
 
 ### Quantitative Extractor
 
