@@ -230,27 +230,36 @@ def extract_claims(query: str, retrieved: list[RetrievedRecord]) -> list[Evidenc
     claim_polarity = _outcome_polarity(query_terms)
     claims: list[EvidenceClaim] = []
     for item in retrieved:
-        sentences = SENTENCE_RE.split(item.record.abstract)
-        for sentence in sentences:
+        for sentence, start, end in _sentence_spans(item.record.abstract):
             base_terms = set(tokenize(sentence))
             sentence_terms = base_terms | set(alias_tags(sentence))
             if len(query_terms & sentence_terms) < 2:
                 continue
             grounded = _entity_grounded(sentence_terms, anchors)
+            anchor_categories = _anchor_category_count(sentence_terms, anchors)
+            facets = _facets(base_terms)
+            stance = _stance(
+                sentence_terms,
+                anchors,
+                item.score,
+                claim_polarity=claim_polarity,
+                grounded=grounded,
+            )
             claims.append(
                 EvidenceClaim(
                     text=sentence.strip(),
                     source_id=item.record.id,
                     evidence_type=item.record.evidence_type,
-                    confidence=_confidence(item.score),
-                    stance=_stance(
-                        sentence_terms,
-                        anchors,
+                    confidence=_confidence(
                         item.score,
-                        claim_polarity=claim_polarity,
-                        grounded=grounded,
+                        stance=stance,
+                        anchor_categories=anchor_categories,
+                        facet_count=len(facets),
                     ),
-                    facets=_facets(base_terms),
+                    stance=stance,
+                    facets=facets,
+                    start=start,
+                    end=end,
                 )
             )
     return claims
@@ -258,6 +267,29 @@ def extract_claims(query: str, retrieved: list[RetrievedRecord]) -> list[Evidenc
 
 def _facets(terms: set[str]) -> tuple[str, ...]:
     return tuple(name for name, lexicon in FACETS.items() if terms & lexicon)
+
+
+def _sentence_spans(text: str) -> list[tuple[str, int, int]]:
+    """Split ``text`` into sentences while preserving character offsets.
+
+    Offsets point at the trimmed sentence within the source abstract so each
+    extracted claim carries verifiable provenance back to the record.
+    """
+
+    spans: list[tuple[str, int, int]] = []
+    cursor = 0
+    for match in SENTENCE_RE.finditer(text):
+        spans.append(_trimmed_span(text, cursor, match.start()))
+        cursor = match.end()
+    spans.append(_trimmed_span(text, cursor, len(text)))
+    return [span for span in spans if span[0]]
+
+
+def _trimmed_span(text: str, start: int, end: int) -> tuple[str, int, int]:
+    raw = text[start:end]
+    lead = len(raw) - len(raw.lstrip())
+    trail = len(raw) - len(raw.rstrip())
+    return raw.strip(), start + lead, end - trail
 
 
 def render_markdown(card: EvidenceCard) -> str:
@@ -288,10 +320,29 @@ def render_markdown(card: EvidenceCard) -> str:
     return "\n".join(lines)
 
 
-def _confidence(score: float) -> str:
-    if score >= 0.45:
+def _confidence(
+    score: float,
+    *,
+    stance: str,
+    anchor_categories: int,
+    facet_count: int,
+) -> str:
+    """Grade evidence strength, not just retrieval rank.
+
+    Combines retrieval relevance with how decisively the sentence takes a
+    stance, how many entity anchors it grounds against, and how many evidence
+    angles it covers, so the label reflects evidence quality rather than
+    keyword overlap alone.
+    """
+
+    strength = min(score, 0.6)
+    if stance in ("supports", "conflicts"):
+        strength += 0.25
+    strength += min(anchor_categories, 3) * 0.1
+    strength += min(facet_count, 3) * 0.05
+    if strength >= 0.75:
         return "high"
-    if score >= 0.25:
+    if strength >= 0.45:
         return "medium"
     return "low"
 
@@ -381,8 +432,9 @@ def _append_claim_group(
         return
     for claim in selected:
         facets = ", ".join(claim.facets) or "general"
+        provenance = f"{claim.source_id}@{claim.start}-{claim.end}"
         lines.append(
-            f"- [{claim.confidence} | {claim.evidence_type} | {facets} | {claim.source_id}] {claim.text}"
+            f"- [{claim.confidence} | {claim.evidence_type} | {facets} | {provenance}] {claim.text}"
         )
 
 
