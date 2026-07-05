@@ -108,6 +108,78 @@ class EmbeddingBackendTest(unittest.TestCase):
         self.assertIn("semantic", str(ctx.exception))
 
 
+class LLMExtractorTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.records = load_corpus(ROOT / "data" / "sample_corpus.jsonl")
+        cls.ontology = Ontology.load(ROOT / "data" / "ontology.jsonl")
+
+    def _ranked(self, claim: str, k: int = 1):
+        return ConceptAwareRetriever(self.records).search(claim, top_k=k)
+
+    def test_faithfulness_guard_drops_hallucinated_quotes(self) -> None:
+        from biomedical_evidence_agent.extraction import LLMClaimExtractor
+
+        def responder(claim, record):
+            return [
+                {"quote": "This sample record describes BRAF V600E melanoma",
+                 "stance": "supports", "rationale": "verbatim"},
+                {"quote": "BRAF cures melanoma in all patients",
+                 "stance": "supports", "rationale": "hallucinated"},
+            ]
+
+        ext = LLMClaimExtractor(responder=responder, ontology=self.ontology)
+        claims, proposed = ext.extract_with_stats(
+            "BRAF melanoma response", self._ranked("BRAF melanoma response")
+        )
+        self.assertEqual(proposed, 2)
+        self.assertEqual(len(claims), 1)
+        # Kept claim's span points back to the verbatim source text.
+        kept = claims[0]
+        self.assertEqual(
+            self.records[1].abstract[kept.start:kept.end], kept.text
+        )
+
+    def test_grounded_quote_gets_a_valid_span_and_stance(self) -> None:
+        from biomedical_evidence_agent.extraction import (
+            LLMClaimExtractor,
+            heuristic_responder,
+        )
+
+        ext = LLMClaimExtractor(
+            responder=heuristic_responder(ontology=self.ontology),
+            ontology=self.ontology,
+        )
+        claims = ext.extract(
+            "BRAF melanoma is associated with response to targeted inhibitor treatment.",
+            self._ranked("BRAF melanoma targeted inhibitor response", k=3),
+        )
+        self.assertTrue(claims)
+        for claim in claims:
+            self.assertIn(claim.stance, ("supports", "conflicts", "insufficient"))
+            self.assertGreaterEqual(claim.end, claim.start)
+
+    def test_missing_backend_raises_clear_error(self) -> None:
+        import builtins
+
+        from biomedical_evidence_agent.extraction import (
+            ExtractorUnavailable,
+            anthropic_responder,
+        )
+
+        real_import = builtins.__import__
+
+        def blocked_import(name, *args, **kwargs):
+            if name == "anthropic":
+                raise ImportError("blocked for test")
+            return real_import(name, *args, **kwargs)
+
+        with unittest.mock.patch("builtins.__import__", side_effect=blocked_import):
+            with self.assertRaises(ExtractorUnavailable) as ctx:
+                anthropic_responder()
+        self.assertIn("llm", str(ctx.exception))
+
+
 class StanceEvaluationTest(unittest.TestCase):
     def test_stance_gold_is_labeled_correctly_with_no_guardrail_leaks(self) -> None:
         records = load_corpus(ROOT / "data" / "sample_corpus.jsonl")
