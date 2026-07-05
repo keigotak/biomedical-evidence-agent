@@ -5,12 +5,25 @@ from pathlib import Path
 
 from .evidence import build_evidence_card, render_markdown
 from .pubmed import PubMedError, search_pubmed
-from .retrieval import LexicalRetriever, load_corpus
+from .retrieval import ConceptAwareRetriever, LexicalRetriever, load_corpus
 from .schemas import RetrievedRecord
 
 
 def default_corpus_path() -> Path:
     return Path(__file__).resolve().parents[2] / "data" / "sample_corpus.jsonl"
+
+
+def _build_retriever(name: str, records):
+    if name == "lexical":
+        return LexicalRetriever(records)
+    if name == "embedding":
+        from .embedding import EmbeddingRetriever, EmbeddingUnavailable
+
+        try:
+            return EmbeddingRetriever(records)
+        except EmbeddingUnavailable as exc:
+            raise SystemExit(str(exc)) from exc
+    return ConceptAwareRetriever(records)
 
 
 def main() -> None:
@@ -31,6 +44,15 @@ def main() -> None:
         default=default_corpus_path(),
         help="Path to a JSONL corpus.",
     )
+    parser.add_argument(
+        "--retriever",
+        choices=["concept", "lexical", "embedding"],
+        default="concept",
+        help=(
+            "Retriever for the local corpus. 'concept' adds ontology grounding "
+            "to lexical TF-IDF; 'embedding' needs the optional 'semantic' extra."
+        ),
+    )
     args = parser.parse_args()
 
     query = args.claim or args.query
@@ -45,7 +67,9 @@ def main() -> None:
         ]
     else:
         records = load_corpus(args.corpus)
-        retrieved = LexicalRetriever(records).search(query, top_k=args.top_k)
+        retrieved = _build_retriever(args.retriever, records).search(
+            query, top_k=args.top_k
+        )
 
     card = build_evidence_card(
         query=query,

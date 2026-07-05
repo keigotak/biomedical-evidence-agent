@@ -12,9 +12,11 @@ license = {text = "MIT"}
 authors = [{name = "Keigo Takahashi"}]
 dependencies = []
 
+[project.optional-dependencies]
+semantic = ["sentence-transformers>=2.2"]
+
 [project.scripts]
 biomedical-evidence-agent = "biomedical_evidence_agent.cli:main"
-biomedical-evidence-eval = "biomedical_evidence_agent.evaluation:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

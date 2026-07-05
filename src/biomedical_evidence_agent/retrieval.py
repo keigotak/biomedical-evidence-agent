@@ -7,6 +7,7 @@ from collections import Counter
 from pathlib import Path
 
 from .aliases import alias_tags
+from .ontology import Ontology
 from .schemas import CorpusRecord, RetrievedRecord
 
 TOKEN_RE = re.compile(r"[A-Za-z0-9]+(?:-[A-Za-z0-9]+)?")
@@ -20,6 +21,18 @@ def analyze(text: str) -> list[str]:
     """Tokenize ``text`` and append canonical alias tags for abbreviations."""
 
     return tokenize(text) + alias_tags(text)
+
+
+def analyze_with_concepts(text: str, ontology: Ontology) -> list[str]:
+    """Tokenize ``text`` and append normalized concept ids.
+
+    Concept ids collapse abbreviations, synonyms, and brand/generic surface
+    forms onto one token, so a query and a document that name the same entity
+    with different words share that token and match. This is ontology-grounded
+    semantic matching without an embedding model.
+    """
+
+    return tokenize(text) + list(ontology.concept_ids(text))
 
 
 def load_corpus(path: Path) -> list[CorpusRecord]:
@@ -37,19 +50,25 @@ def load_corpus(path: Path) -> list[CorpusRecord]:
                     entities=item["entities"],
                     abstract=item["abstract"],
                     evidence_type=item["evidence_type"],
+                    study_design=item.get("study_design", ""),
                 )
             )
     return records
 
 
-class LexicalRetriever:
+class _VectorRetriever:
+    """TF-IDF cosine retriever parameterized by a token analyzer."""
+
     def __init__(self, records: list[CorpusRecord]):
         self.records = records
-        self._doc_tokens = [analyze(self._record_text(record)) for record in records]
+        self._doc_tokens = [self._analyze(self._record_text(record)) for record in records]
         self._idf = self._build_idf(self._doc_tokens)
 
+    def _analyze(self, text: str) -> list[str]:  # pragma: no cover - overridden
+        raise NotImplementedError
+
     def search(self, query: str, top_k: int = 3) -> list[RetrievedRecord]:
-        query_weights = self._weights(analyze(query))
+        query_weights = self._weights(self._analyze(query))
         ranked: list[RetrievedRecord] = []
         for record, tokens in zip(self.records, self._doc_tokens):
             score = self._cosine(query_weights, self._weights(tokens))
@@ -87,3 +106,26 @@ class LexicalRetriever:
         if left_norm == 0 or right_norm == 0:
             return 0.0
         return numerator / (left_norm * right_norm)
+
+
+class LexicalRetriever(_VectorRetriever):
+    """Lexical TF-IDF retriever with abbreviation alias expansion."""
+
+    def _analyze(self, text: str) -> list[str]:
+        return analyze(text)
+
+
+class ConceptAwareRetriever(_VectorRetriever):
+    """Hybrid retriever that adds normalized concept ids to the token stream.
+
+    The concept ids give the cosine a representation-invariant signal on top of
+    lexical overlap, so records that name the query's entities with different
+    surface forms are still retrieved.
+    """
+
+    def __init__(self, records: list[CorpusRecord], ontology: Ontology | None = None):
+        self._ontology = ontology or Ontology.load()
+        super().__init__(records)
+
+    def _analyze(self, text: str) -> list[str]:
+        return analyze_with_concepts(text, self._ontology)
