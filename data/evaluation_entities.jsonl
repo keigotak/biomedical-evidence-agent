@@ -1,0 +1,8 @@
+{"id":"el-001","text":"AZD9291 shows durable response in EGFR mutant NSCLC patients.","expected_concepts":["BEA:drug:osimertinib","BEA:gene:egfr","BEA:disease:nsclc"],"note":"brand/code alias resolves to generic drug"}
+{"id":"el-002","text":"ERBB1 signaling drives tumor growth in some carcinomas.","expected_concepts":["BEA:gene:egfr"],"note":"gene synonym resolves to canonical gene"}
+{"id":"el-003","text":"TKI therapy improved outcomes in the treated cohort.","expected_concepts":["BEA:drug_class:tki"],"note":"class abbreviation resolves; bare 'therapy' does not link"}
+{"id":"el-004","text":"Salbutamol is a beta-2 adrenergic receptor agonist used in asthma.","expected_concepts":["BEA:drug:salbutamol","BEA:gene:adrb2"],"note":"non-oncology receptor pharmacology generalization"}
+{"id":"el-005","text":"Non-small cell lung cancer patients received gefitinib as first-line therapy.","expected_concepts":["BEA:disease:nsclc","BEA:drug:gefitinib"],"note":"multi-word disease matched as one span"}
+{"id":"el-006","text":"IL6 and TNF are elevated in inflammatory disease.","expected_concepts":["BEA:gene:il6","BEA:gene:tnf","BEA:disease:inflammatory_disease"],"note":"non-oncology inflammatory targets"}
+{"id":"el-007","text":"The study used a targeted approach to statistical data analysis.","expected_concepts":[],"note":"negative control: 'targeted' alone must not link to targeted therapy"}
+{"id":"el-008","text":"Vemurafenib was administered to the melanoma cohort.","expected_concepts":["BEA:drug:vemurafenib","BEA:disease:melanoma"],"note":"drug target (BRAF) is metadata, not a mention"}

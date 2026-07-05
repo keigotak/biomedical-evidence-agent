@@ -1,150 +1,436 @@
 from __future__ import annotations
 
-import argparse
 import json
 from dataclasses import dataclass
 from pathlib import Path
 
 from .evidence import build_evidence_card
-from .retrieval import LexicalRetriever, load_corpus, tokenize
+from .ontology import Ontology
+from .quant import extract_measurements
+from .retrieval import ConceptAwareRetriever, LexicalRetriever, load_corpus
 from .schemas import CorpusRecord
 
 
-@dataclass
-class ItemResult:
-    query: str
-    retrieval_hit: float
-    term_coverage: float
-    stance_recall: float | None
+def default_entity_eval_path() -> Path:
+    return Path(__file__).resolve().parents[2] / "data" / "evaluation_entities.jsonl"
 
 
 def default_corpus_path() -> Path:
     return Path(__file__).resolve().parents[2] / "data" / "sample_corpus.jsonl"
 
 
-def default_eval_path() -> Path:
+def default_retrieval_eval_path() -> Path:
     return Path(__file__).resolve().parents[2] / "data" / "evaluation_claims.jsonl"
 
 
-def load_eval(path: Path) -> list[dict]:
-    items: list[dict] = []
+def default_stance_eval_path() -> Path:
+    return Path(__file__).resolve().parents[2] / "data" / "evaluation_stances.jsonl"
+
+
+def default_quant_eval_path() -> Path:
+    return Path(__file__).resolve().parents[2] / "data" / "evaluation_quant.jsonl"
+
+
+@dataclass(frozen=True)
+class EntityLinkingCase:
+    id: str
+    text: str
+    expected_concepts: frozenset[str]
+
+
+@dataclass(frozen=True)
+class EntityLinkingReport:
+    precision: float
+    recall: float
+    f1: float
+    true_positives: int
+    false_positives: int
+    false_negatives: int
+    per_case: list[dict[str, object]]
+
+
+def load_entity_cases(path: Path | None = None) -> list[EntityLinkingCase]:
+    path = path or default_entity_eval_path()
+    cases: list[EntityLinkingCase] = []
     with path.open("r", encoding="utf-8") as handle:
         for line in handle:
-            if line.strip():
-                items.append(json.loads(line))
-    return items
-
-
-def evaluate(
-    records: list[CorpusRecord],
-    eval_items: list[dict],
-    *,
-    top_k: int = 4,
-) -> list[ItemResult]:
-    retriever = LexicalRetriever(records)
-    results: list[ItemResult] = []
-    for item in eval_items:
-        query = item.get("claim") or item["query"]
-        retrieved = retriever.search(query, top_k=top_k)
-        card = build_evidence_card(
-            query=query,
-            retrieved=retrieved,
-            claim=item.get("claim"),
-        )
-        results.append(
-            ItemResult(
-                query=query,
-                retrieval_hit=_retrieval_hit(item, retrieved),
-                term_coverage=_term_coverage(item, retrieved),
-                stance_recall=_stance_recall(item, card.claims),
+            if not line.strip():
+                continue
+            item = json.loads(line)
+            cases.append(
+                EntityLinkingCase(
+                    id=item["id"],
+                    text=item["text"],
+                    expected_concepts=frozenset(item.get("expected_concepts", [])),
+                )
             )
+    return cases
+
+
+def evaluate_entity_linking(
+    ontology: Ontology, cases: list[EntityLinkingCase]
+) -> EntityLinkingReport:
+    """Score concept resolution as a set-level entity-linking task.
+
+    Precision/recall are micro-averaged over concept mentions across all cases,
+    so both missed concepts (recall) and over-linking (precision) are penalized.
+    Cases with an empty expected set act as negative controls: any predicted
+    concept there is a false positive.
+    """
+
+    tp = fp = fn = 0
+    per_case: list[dict[str, object]] = []
+    for case in cases:
+        predicted = set(ontology.concept_ids(case.text))
+        expected = set(case.expected_concepts)
+        matched = predicted & expected
+        missed = expected - predicted
+        spurious = predicted - expected
+        tp += len(matched)
+        fp += len(spurious)
+        fn += len(missed)
+        per_case.append(
+            {
+                "id": case.id,
+                "matched": sorted(matched),
+                "missed": sorted(missed),
+                "spurious": sorted(spurious),
+            }
         )
-    return results
-
-
-def _retrieval_hit(item: dict, retrieved) -> float:
-    expected = item.get("expected_ids") or []
-    if not expected:
-        return 1.0
-    found = {result.record.id for result in retrieved}
-    return sum(1 for identifier in expected if identifier in found) / len(expected)
-
-
-def _term_coverage(item: dict, retrieved) -> float:
-    expected_terms = item.get("expected_terms") or []
-    if not expected_terms:
-        return 1.0
-    corpus_tokens: set[str] = set()
-    for result in retrieved:
-        corpus_tokens.update(tokenize(result.record.title))
-        corpus_tokens.update(tokenize(result.record.abstract))
-    covered = sum(
-        1
-        for term in expected_terms
-        if set(tokenize(term)) <= corpus_tokens
+    precision = tp / (tp + fp) if (tp + fp) else 1.0
+    recall = tp / (tp + fn) if (tp + fn) else 1.0
+    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) else 0.0
+    return EntityLinkingReport(
+        precision=precision,
+        recall=recall,
+        f1=f1,
+        true_positives=tp,
+        false_positives=fp,
+        false_negatives=fn,
+        per_case=per_case,
     )
-    return covered / len(expected_terms)
 
 
-def _stance_recall(item: dict, claims) -> float | None:
-    expected_support = set(item.get("expected_supporting_ids") or [])
-    expected_conflict = set(item.get("expected_conflicting_ids") or [])
-    expects_no_support = item.get("expected_no_support")
-    if not expected_support and not expected_conflict and expects_no_support is None:
-        return None
+@dataclass(frozen=True)
+class RetrievalCase:
+    query: str
+    expected_ids: frozenset[str]
 
-    predicted_support = {c.source_id for c in claims if c.stance == "supports"}
-    predicted_conflict = {c.source_id for c in claims if c.stance == "conflicts"}
+
+@dataclass(frozen=True)
+class RetrievalReport:
+    label: str
+    recall_at_k: float
+    mrr: float
+    k: int
+    cases: int
+
+
+def load_retrieval_cases(path: Path | None = None) -> list[RetrievalCase]:
+    path = path or default_retrieval_eval_path()
+    cases: list[RetrievalCase] = []
+    with path.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            if not line.strip():
+                continue
+            item = json.loads(line)
+            cases.append(
+                RetrievalCase(
+                    query=item["query"],
+                    expected_ids=frozenset(item.get("expected_ids", [])),
+                )
+            )
+    return cases
+
+
+def evaluate_retrieval(
+    retriever: "LexicalRetriever | ConceptAwareRetriever",
+    cases: list[RetrievalCase],
+    *,
+    label: str,
+    k: int = 3,
+) -> RetrievalReport:
+    """Recall@k and mean reciprocal rank over labeled query -> relevant ids.
+
+    Recall@k credits a case if any expected id appears in the top k. MRR uses
+    the rank of the first expected id, so a retriever that ranks the right
+    record higher scores better even when both find it.
+    """
 
     hits = 0
-    total = 0
-    for identifier in expected_support:
-        total += 1
-        hits += identifier in predicted_support
-    for identifier in expected_conflict:
-        total += 1
-        hits += identifier in predicted_conflict
-    if expects_no_support is not None:
-        total += 1
-        hits += bool(expects_no_support) == (not predicted_support)
-    return hits / total if total else None
+    reciprocal = 0.0
+    for case in cases:
+        ranked = retriever.search(case.query, top_k=k)
+        ranked_ids = [item.record.id for item in ranked]
+        if case.expected_ids & set(ranked_ids):
+            hits += 1
+        for rank, record_id in enumerate(ranked_ids, start=1):
+            if record_id in case.expected_ids:
+                reciprocal += 1.0 / rank
+                break
+    count = len(cases) or 1
+    return RetrievalReport(
+        label=label,
+        recall_at_k=hits / count,
+        mrr=reciprocal / count,
+        k=k,
+        cases=len(cases),
+    )
 
 
-def render_report(results: list[ItemResult]) -> str:
-    lines = ["# Evaluation Report", ""]
-    for result in results:
-        stance = (
-            "n/a" if result.stance_recall is None else f"{result.stance_recall:.2f}"
-        )
-        lines.append(
-            f"- retrieval={result.retrieval_hit:.2f} "
-            f"terms={result.term_coverage:.2f} stance={stance} :: {result.query}"
-        )
-    lines.extend(["", "## Aggregate"])
-    lines.append(f"- mean retrieval hit@k: {_mean(r.retrieval_hit for r in results):.3f}")
-    lines.append(f"- mean term coverage: {_mean(r.term_coverage for r in results):.3f}")
-    stance_values = [r.stance_recall for r in results if r.stance_recall is not None]
-    if stance_values:
-        lines.append(f"- mean stance recall: {_mean(stance_values):.3f}")
-    return "\n".join(lines)
+def retrieval_ablation(
+    records: list[CorpusRecord],
+    cases: list[RetrievalCase],
+    *,
+    k: int = 3,
+) -> list[RetrievalReport]:
+    """Compare lexical-only against concept-aware retrieval on the same cases."""
+
+    return [
+        evaluate_retrieval(LexicalRetriever(records), cases, label="lexical", k=k),
+        evaluate_retrieval(
+            ConceptAwareRetriever(records), cases, label="+concept", k=k
+        ),
+    ]
 
 
-def _mean(values) -> float:
-    values = list(values)
-    return sum(values) / len(values) if values else 0.0
+STANCE_CLASSES = ("supports", "conflicts", "insufficient")
+
+
+@dataclass(frozen=True)
+class StanceCase:
+    id: str
+    claim: str
+    items: tuple[dict[str, str], ...]
+
+
+@dataclass(frozen=True)
+class StanceReport:
+    per_class: dict[str, dict[str, float]]
+    macro_f1: float
+    guardrail_items: int
+    guardrail_violations: int
+    unmatched: int
+
+
+def load_stance_cases(path: Path | None = None) -> list[StanceCase]:
+    path = path or default_stance_eval_path()
+    cases: list[StanceCase] = []
+    with path.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            if not line.strip():
+                continue
+            item = json.loads(line)
+            cases.append(
+                StanceCase(
+                    id=item["id"],
+                    claim=item["claim"],
+                    items=tuple(item.get("items", [])),
+                )
+            )
+    return cases
+
+
+def _predicted_stance(card_claims, source_id: str, contains: str) -> str | None:
+    for claim in card_claims:
+        if claim.source_id == source_id and contains in claim.text:
+            return claim.stance
+    return None
+
+
+def evaluate_stance(
+    records: list[CorpusRecord],
+    cases: list[StanceCase],
+    *,
+    k: int = 5,
+) -> StanceReport:
+    """Per-class stance P/R/F1 plus guardrail metrics.
+
+    Guardrail items are sentences that must be demoted to insufficient because
+    they name a different entity (cross_entity) or the opposite outcome polarity
+    (polarity). A violation is any such item that leaks through as supporting or
+    conflicting evidence; the target is zero.
+    """
+
+    retriever = ConceptAwareRetriever(records)
+    counts = {label: {"tp": 0, "fp": 0, "fn": 0} for label in STANCE_CLASSES}
+    guardrail_items = 0
+    guardrail_violations = 0
+    unmatched = 0
+    for case in cases:
+        ranked = retriever.search(case.claim, top_k=k)
+        card = build_evidence_card(query=case.claim, retrieved=ranked, claim=case.claim)
+        for item in case.items:
+            gold = item["stance"]
+            predicted = _predicted_stance(card.claims, item["source_id"], item["contains"])
+            if predicted is None:
+                unmatched += 1
+                counts[gold]["fn"] += 1
+                continue
+            if predicted == gold:
+                counts[gold]["tp"] += 1
+            else:
+                counts[gold]["fn"] += 1
+                counts[predicted]["fp"] += 1
+            if item.get("reason") in ("cross_entity", "polarity"):
+                guardrail_items += 1
+                if predicted in ("supports", "conflicts"):
+                    guardrail_violations += 1
+    per_class: dict[str, dict[str, float]] = {}
+    f1_sum = 0.0
+    for label in STANCE_CLASSES:
+        tp = counts[label]["tp"]
+        fp = counts[label]["fp"]
+        fn = counts[label]["fn"]
+        precision = tp / (tp + fp) if (tp + fp) else 1.0
+        recall = tp / (tp + fn) if (tp + fn) else 1.0
+        f1 = 2 * precision * recall / (precision + recall) if (precision + recall) else 0.0
+        per_class[label] = {"precision": precision, "recall": recall, "f1": f1}
+        f1_sum += f1
+    return StanceReport(
+        per_class=per_class,
+        macro_f1=f1_sum / len(STANCE_CLASSES),
+        guardrail_items=guardrail_items,
+        guardrail_violations=guardrail_violations,
+        unmatched=unmatched,
+    )
+
+
+@dataclass(frozen=True)
+class QuantCase:
+    id: str
+    text: str
+    expected: tuple[tuple[str, float, str], ...]
+
+
+@dataclass(frozen=True)
+class QuantReport:
+    precision: float
+    recall: float
+    f1: float
+    true_positives: int
+    false_positives: int
+    false_negatives: int
+
+
+def load_quant_cases(path: Path | None = None) -> list[QuantCase]:
+    path = path or default_quant_eval_path()
+    cases: list[QuantCase] = []
+    with path.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            if not line.strip():
+                continue
+            item = json.loads(line)
+            expected = tuple(
+                (row["parameter"], float(row["value"]), row["unit"])
+                for row in item.get("expected", [])
+            )
+            cases.append(QuantCase(id=item["id"], text=item["text"], expected=expected))
+    return cases
+
+
+def evaluate_quant(
+    cases: list[QuantCase], *, ontology: Ontology | None = None
+) -> QuantReport:
+    """Precision/recall of quantitative extraction on (parameter, value, unit)."""
+
+    ontology = ontology or Ontology.load()
+    tp = fp = fn = 0
+    for case in cases:
+        predicted = {
+            (m.parameter, m.value, m.unit)
+            for m in extract_measurements(case.text, ontology=ontology)
+        }
+        expected = set(case.expected)
+        tp += len(predicted & expected)
+        fp += len(predicted - expected)
+        fn += len(expected - predicted)
+    precision = tp / (tp + fp) if (tp + fp) else 1.0
+    recall = tp / (tp + fn) if (tp + fn) else 1.0
+    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) else 0.0
+    return QuantReport(
+        precision=precision,
+        recall=recall,
+        f1=f1,
+        true_positives=tp,
+        false_positives=fp,
+        false_negatives=fn,
+    )
+
+
+def _embedding_ablation_line(
+    records: list[CorpusRecord], cases: list[RetrievalCase], *, k: int = 3
+) -> str:
+    """Retrieval line for the optional embedding backend, or why it was skipped."""
+
+    from .embedding import EmbeddingRetriever, EmbeddingUnavailable
+
+    try:
+        retriever = EmbeddingRetriever(records)
+    except EmbeddingUnavailable as exc:
+        return f"skipped ({exc})"
+    report = evaluate_retrieval(retriever, cases, label="+embedding", k=k)
+    return (
+        f"recall@{report.k}={report.recall_at_k:.3f} "
+        f"mrr={report.mrr:.3f} (n={report.cases})"
+    )
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Evaluate retrieval and evidence attribution.")
-    parser.add_argument("--corpus", type=Path, default=default_corpus_path())
-    parser.add_argument("--eval", type=Path, default=default_eval_path())
-    parser.add_argument("--top-k", type=int, default=4)
-    args = parser.parse_args()
+    ontology = Ontology.load()
+    report = evaluate_entity_linking(ontology, load_entity_cases())
+    print("# Entity Linking Evaluation")
+    print(f"precision: {report.precision:.3f}")
+    print(f"recall:    {report.recall:.3f}")
+    print(f"f1:        {report.f1:.3f}")
+    print(f"tp/fp/fn:  {report.true_positives}/{report.false_positives}/{report.false_negatives}")
+    print("")
+    print("## Per-case errors")
+    errors = [case for case in report.per_case if case["missed"] or case["spurious"]]
+    if not errors:
+        print("- none")
+    for case in errors:
+        print(f"- {case['id']}: missed={case['missed']} spurious={case['spurious']}")
 
-    records = load_corpus(args.corpus)
-    eval_items = load_eval(args.eval)
-    results = evaluate(records, eval_items, top_k=args.top_k)
-    print(render_report(results))
+    records = load_corpus(default_corpus_path())
+    retrieval_cases = load_retrieval_cases()
+    print("")
+    print("# Retrieval Evaluation (ablation)")
+    for retrieval_report in retrieval_ablation(records, retrieval_cases, k=3):
+        print(
+            f"- {retrieval_report.label:>9}: "
+            f"recall@{retrieval_report.k}={retrieval_report.recall_at_k:.3f} "
+            f"mrr={retrieval_report.mrr:.3f} "
+            f"(n={retrieval_report.cases})"
+        )
+    print(f"- {'+embedding':>9}: {_embedding_ablation_line(records, retrieval_cases)}")
+
+    stance_report = evaluate_stance(records, load_stance_cases())
+    print("")
+    print("# Stance Evaluation")
+    for label in STANCE_CLASSES:
+        scores = stance_report.per_class[label]
+        print(
+            f"- {label:>12}: p={scores['precision']:.3f} "
+            f"r={scores['recall']:.3f} f1={scores['f1']:.3f}"
+        )
+    print(f"- macro-F1: {stance_report.macro_f1:.3f}")
+    print(
+        f"- guardrail violations: {stance_report.guardrail_violations}"
+        f"/{stance_report.guardrail_items} "
+        f"(cross-entity + polarity leaks; target 0)"
+    )
+
+    quant_report = evaluate_quant(load_quant_cases())
+    print("")
+    print("# Quantitative Extraction Evaluation")
+    print(f"- precision: {quant_report.precision:.3f}")
+    print(f"- recall:    {quant_report.recall:.3f}")
+    print(f"- f1:        {quant_report.f1:.3f}")
+    print(
+        f"- tp/fp/fn:  {quant_report.true_positives}/"
+        f"{quant_report.false_positives}/{quant_report.false_negatives}"
+    )
 
 
 if __name__ == "__main__":

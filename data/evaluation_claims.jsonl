@@ -2,5 +2,6 @@
 {"query":"BRAF melanoma targeted therapy","expected_ids":["toy-002"],"expected_terms":["BRAF","melanoma","targeted inhibitors"]}
 {"query":"neoantigen prediction HLA RNA expression","expected_ids":["toy-003"],"expected_terms":["HLA","RNA expression","antigen presentation"]}
 {"query":"single-cell target discovery inflammatory disease IL6 TNF","expected_ids":["toy-005"],"expected_terms":["single-cell","target discovery","IL6","TNF"]}
-{"claim":"BRAF melanoma is associated with response to targeted inhibitor treatment.","expected_ids":["toy-002","toy-006"],"expected_supporting_ids":["toy-002"],"expected_conflicting_ids":["toy-006"]}
-{"claim":"EGFR T790M is associated with resistance to first-generation EGFR inhibitors in non-small cell lung cancer.","expected_ids":["toy-001"],"expected_no_support":true}
+{"query":"Tagrisso","expected_ids":["toy-001"],"expected_terms":["osimertinib"],"note":"brand name absent from corpus/alias map; only concept normalization bridges it"}
+{"query":"ERBB1","expected_ids":["toy-001"],"expected_terms":["EGFR"],"note":"gene synonym; lexical has no overlap, concept resolves to EGFR"}
+{"query":"Zelboraf","expected_ids":["toy-002"],"expected_terms":["vemurafenib"],"note":"brand name for vemurafenib; concept-only bridge"}
