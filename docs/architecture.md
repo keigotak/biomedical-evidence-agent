@@ -41,9 +41,17 @@ Each extracted sentence is also tagged with one or more evidence **facets** — 
 
 The evidence card is the primary output object. It contains the query or claim, retrieved records, extracted evidence sentences grouped by stance, per-sentence facet tags, confidence labels, limitations, and suggested next checks. The card also renders an "Evidence by Angle" view that regroups the on-claim (supporting and conflicting) evidence by facet, so a reader can see whether support is one-dimensional or converges across mechanism, clinical, and biomarker lines.
 
+Each evidence sentence carries a `source@start-end` character span back into its source abstract, so every stance label has verifiable provenance. Confidence is graded from evidence strength — retrieval relevance, whether the sentence takes a decisive stance, how many entity anchors it grounds against, and how many facets it covers — rather than from retrieval rank alone.
+
 ### Evaluation
 
-The sample evaluation data checks whether expected record identifiers appear in the retrieved set for a query. This is a minimal scaffold for retrieval and evidence-support evaluation.
+`evaluation.py` runs the labeled set in `data/evaluation_claims.jsonl` end-to-end and reports three metrics per item plus aggregates:
+
+- **retrieval hit@k** — fraction of `expected_ids` present in the retrieved set.
+- **term coverage** — fraction of `expected_terms` whose tokens appear in the retrieved abstracts.
+- **stance recall** — for claim-mode items, whether `expected_supporting_ids` / `expected_conflicting_ids` receive the right stance, and whether `expected_no_support` claims correctly yield no supporting evidence.
+
+Run it with `python -m biomedical_evidence_agent.evaluation`. This turns evidence attribution into a measured quantity rather than an unverified behavior, and is the harness against which future changes (model-backed extraction, confidence calibration) can be judged.
 
 ## Data Policy
 
