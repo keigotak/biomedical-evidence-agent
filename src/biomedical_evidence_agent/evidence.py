@@ -240,9 +240,13 @@ def build_evidence_card(
     claim: str | None = None,
     source: str = "sample",
     ontology: Ontology | None = None,
+    extractor=None,
 ) -> EvidenceCard:
     ontology = ontology or Ontology.load()
-    claims = extract_claims(claim or query, retrieved, ontology=ontology)
+    if extractor is not None:
+        claims = extractor.extract(claim or query, retrieved)
+    else:
+        claims = extract_claims(claim or query, retrieved, ontology=ontology)
     measurements: list[QuantMeasurement] = []
     for item in retrieved:
         measurements.extend(

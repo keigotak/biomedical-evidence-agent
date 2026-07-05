@@ -26,6 +26,21 @@ def _build_retriever(name: str, records):
     return ConceptAwareRetriever(records)
 
 
+def _build_extractor(name: str):
+    if name == "deterministic":
+        return None
+    from .extraction import LLMClaimExtractor, ExtractorUnavailable, heuristic_responder
+
+    if name == "mock-llm":
+        return LLMClaimExtractor(responder=heuristic_responder())
+    from .extraction import anthropic_responder
+
+    try:
+        return LLMClaimExtractor(responder=anthropic_responder())
+    except ExtractorUnavailable as exc:
+        raise SystemExit(str(exc)) from exc
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Generate a biomedical evidence card.")
     query_group = parser.add_mutually_exclusive_group(required=True)
@@ -53,6 +68,16 @@ def main() -> None:
             "to lexical TF-IDF; 'embedding' needs the optional 'semantic' extra."
         ),
     )
+    parser.add_argument(
+        "--extractor",
+        choices=["deterministic", "llm", "mock-llm"],
+        default="deterministic",
+        help=(
+            "Claim extractor. 'llm' uses a model-backed, citation-grounded "
+            "extractor (needs the 'llm' extra + ANTHROPIC_API_KEY); 'mock-llm' "
+            "runs the same pipeline with an offline stand-in responder."
+        ),
+    )
     args = parser.parse_args()
 
     query = args.claim or args.query
@@ -76,6 +101,7 @@ def main() -> None:
         retrieved=retrieved,
         claim=args.claim,
         source=args.source,
+        extractor=_build_extractor(args.extractor),
     )
     print(render_markdown(card))
 

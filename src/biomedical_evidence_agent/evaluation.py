@@ -243,6 +243,7 @@ def evaluate_stance(
     cases: list[StanceCase],
     *,
     k: int = 5,
+    extractor=None,
 ) -> StanceReport:
     """Per-class stance P/R/F1 plus guardrail metrics.
 
@@ -259,7 +260,9 @@ def evaluate_stance(
     unmatched = 0
     for case in cases:
         ranked = retriever.search(case.claim, top_k=k)
-        card = build_evidence_card(query=case.claim, retrieved=ranked, claim=case.claim)
+        card = build_evidence_card(
+            query=case.claim, retrieved=ranked, claim=case.claim, extractor=extractor
+        )
         for item in case.items:
             gold = item["stance"]
             predicted = _predicted_stance(card.claims, item["source_id"], item["contains"])
@@ -376,6 +379,35 @@ def _embedding_ablation_line(
     )
 
 
+def evaluate_faithfulness(
+    records: list[CorpusRecord],
+    responder,
+    cases: list[StanceCase],
+    *,
+    k: int = 5,
+) -> dict[str, object]:
+    """Fraction of a responder's proposed quotes that are verbatim in the source.
+
+    Measures how much the faithfulness guard has to reject: quotes that are not
+    an exact span of the cited abstract are hallucinated/altered and dropped.
+    """
+
+    retriever = ConceptAwareRetriever(records)
+    proposed = 0
+    faithful = 0
+    for case in cases:
+        for item in retriever.search(case.claim, top_k=k):
+            for raw in responder(case.claim, item.record) or []:
+                quote = (raw.get("quote") or "").strip()
+                if not quote:
+                    continue
+                proposed += 1
+                if quote in item.record.abstract:
+                    faithful += 1
+    rate = faithful / proposed if proposed else 1.0
+    return {"proposed": proposed, "faithful": faithful, "rate": rate}
+
+
 def main() -> None:
     ontology = Ontology.load()
     report = evaluate_entity_linking(ontology, load_entity_cases())
@@ -430,6 +462,27 @@ def main() -> None:
     print(
         f"- tp/fp/fn:  {quant_report.true_positives}/"
         f"{quant_report.false_positives}/{quant_report.false_negatives}"
+    )
+
+    from .extraction import LLMClaimExtractor, heuristic_responder
+
+    stance_cases = load_stance_cases()
+    responder = heuristic_responder()
+    mock_stance = evaluate_stance(
+        records, stance_cases, extractor=LLMClaimExtractor(responder=responder)
+    )
+    faithfulness = evaluate_faithfulness(records, responder, stance_cases)
+    print("")
+    print("# Claim Extractor Evaluation (deterministic vs mock-llm)")
+    print(f"- deterministic stance macro-F1: {stance_report.macro_f1:.3f}")
+    print(f"-     mock-llm stance macro-F1: {mock_stance.macro_f1:.3f}")
+    print(
+        f"- mock-llm faithfulness: {faithfulness['rate']:.3f} "
+        f"({faithfulness['faithful']}/{faithfulness['proposed']} quotes verbatim)"
+    )
+    print(
+        "  (mock-llm bypasses the deterministic attribution guards; a real LLM "
+        "backend replaces the responder — the faithfulness guard is what stays.)"
     )
 
 
