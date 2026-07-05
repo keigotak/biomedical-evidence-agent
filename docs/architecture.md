@@ -57,6 +57,10 @@ The deterministic extractor remains the default. On the toy stance benchmark the
 
 `quant.py` lifts quantitative pharmacology parameters out of prose into structured records: potency (IC50, EC50, Ki, Kd) and PK/exposure (Cmax, AUC, half-life, clearance, bioavailability), each with relation, value, unit, and a provenance span. Each measurement is attributed to the nearest preceding compound so values are comparable across compounds and assays.
 
+### Target Dossier
+
+`dossier.py` pivots the whole workflow from a claim to a **target**. `build_target_dossier` normalizes the target string to a concept, matches records by concept identity (not surface text), and rolls up, across every matching record: **modulators** (ontology-declared targets plus co-mentioned specific drugs, each with any extracted potency/PK values), **disease contexts**, **evidence angles** (facets), and **study tiers**. It is the entity-normalization backbone made queryable — the same concept ids that ground attribution now drive a target-centric roll-up, and it generalizes across domains (an EGFR dossier and a β2-adrenergic-receptor dossier build the same way). Reached with `--target`.
+
 ### Verdict
 
 `assess_verdict` in `evidence.py` aggregates the on-claim evidence into a single graded bottom line. Support and conflict are summed as **tier weights over independent sources** — each record counts once per stance, so many sentences from one weak study cannot outvote a single strong one, and an in-vitro result cannot bury a clinical contradiction. The net balance in `[-1, 1]` maps to `well-supported`, `mixed`, `contested` (substantial evidence on both sides), or `insufficient` (too little tier-weighted evidence to call a direction — e.g. an in-silico-only claim). The per-tier breakdown is shown alongside the label so the grade is auditable rather than a black-box score.

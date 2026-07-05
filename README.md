@@ -14,6 +14,7 @@ The main workflow is claim-centered evidence synthesis: given a biomedical claim
 - Retrieval over PubMed-abstract-style sample records, in a lexical, a concept-aware (ontology-grounded), and an optional embedding flavor
 - Claim-centered evidence grouping into supporting, conflicting, and insufficient/indirect evidence, with attribution guards (entity grounding + outcome polarity) that generalize beyond oncology
 - A weighted **verdict** that aggregates supporting vs conflicting evidence by study-design tier over independent sources into a graded, auditable bottom line (`well-supported` / `mixed` / `contested` / `insufficient`)
+- A target-centric **dossier** that pivots from a claim to a normalized target concept and rolls up its modulators (with potencies), disease contexts, evidence angles, and study tiers across the corpus
 - Provenance spans (`source_id@start-end`) back to the source text for every extracted sentence
 - Evidence-tier weighting by study design (`clinical` > `in_vivo` > `association` > `in_vitro` > `in_silico`) folded into confidence
 - Multi-angle evidence facets (mechanism, clinical, biomarker, method) and an "Evidence by Angle" view
@@ -67,8 +68,9 @@ PubMed mode uses public title/abstract metadata only. The default mode remains t
 │       ├── aliases.py             # Abbreviation/synonym alias tags (lexical baseline)
 │       ├── retrieval.py           # Lexical + concept-aware retrievers
 │       ├── embedding.py           # Optional embedding retriever ([semantic] extra)
-│       ├── evidence.py            # Evidence card generation
+│       ├── evidence.py            # Evidence card generation + weighted verdict
 │       ├── extraction.py          # Optional model-backed claim extractor ([llm] extra)
+│       ├── dossier.py             # Target-centric evidence roll-up
 │       ├── quant.py               # Quantitative parameter extraction
 │       ├── pubmed.py              # Optional PubMed metadata retrieval
 │       ├── evaluation.py          # Entity-linking / retrieval / stance / quant evaluation
@@ -107,7 +109,10 @@ python -m biomedical_evidence_agent.cli --claim "..." --extractor mock-llm
 python -m pip install -e '.[llm]'
 python -m biomedical_evidence_agent.cli --claim "..." --extractor llm
 
-# Evaluation suite: entity linking, retrieval ablation, stance guardrails, quantitative
+# Target-centric dossier (local corpus): modulators, potencies, contexts, tiers
+python -m biomedical_evidence_agent.cli --target EGFR
+
+# Evaluation suite: entity linking, retrieval ablation, stance guardrails, quantitative, verdict
 python -m biomedical_evidence_agent.evaluation
 
 python -m unittest discover -s tests

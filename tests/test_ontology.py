@@ -263,6 +263,48 @@ class QuantExtractionTest(unittest.TestCase):
         self.assertEqual(report.f1, 1.0)
 
 
+class TargetDossierTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.records = load_corpus(ROOT / "data" / "sample_corpus.jsonl")
+        cls.ontology = Ontology.load(ROOT / "data" / "ontology.jsonl")
+
+    def _dossier(self, target: str):
+        from biomedical_evidence_agent.dossier import build_target_dossier
+
+        return build_target_dossier(target, self.records, ontology=self.ontology)
+
+    def test_target_normalizes_from_a_synonym(self) -> None:
+        # "ERBB1" is a synonym; the dossier must resolve it to the EGFR concept.
+        dossier = self._dossier("ERBB1")
+        self.assertEqual(dossier.target_id, "BEA:gene:egfr")
+        self.assertIn("toy-007", dossier.record_ids)
+
+    def test_compounds_carry_potencies_and_declared_flag(self) -> None:
+        dossier = self._dossier("EGFR")
+        by_name = {c.name: c for c in dossier.compounds}
+        self.assertTrue(by_name["osimertinib"].declared_target)
+        potencies = {
+            (m.parameter, m.value) for m in by_name["osimertinib"].measurements
+        }
+        self.assertIn(("IC50", 12.0), potencies)
+        # Generic co-mentioned classes are not listed as modulators.
+        self.assertNotIn("targeted therapy", by_name)
+
+    def test_dossier_generalizes_to_non_oncology(self) -> None:
+        dossier = self._dossier("beta-2 adrenergic receptor")
+        self.assertEqual(dossier.target_id, "BEA:gene:adrb2")
+        names = {c.name for c in dossier.compounds}
+        self.assertIn("salbutamol", names)
+        self.assertIn("inflammatory disease", dossier.diseases)
+
+    def test_unresolvable_target_raises(self) -> None:
+        from biomedical_evidence_agent.dossier import DossierError
+
+        with self.assertRaises(DossierError):
+            self._dossier("nonexistent frobnicator")
+
+
 class VerdictTest(unittest.TestCase):
     @staticmethod
     def _claim(source_id, stance, tier):
