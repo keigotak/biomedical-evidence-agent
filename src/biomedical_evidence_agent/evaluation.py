@@ -31,6 +31,10 @@ def default_quant_eval_path() -> Path:
     return Path(__file__).resolve().parents[2] / "data" / "evaluation_quant.jsonl"
 
 
+def default_verdict_eval_path() -> Path:
+    return Path(__file__).resolve().parents[2] / "data" / "evaluation_verdicts.jsonl"
+
+
 @dataclass(frozen=True)
 class EntityLinkingCase:
     id: str
@@ -379,6 +383,65 @@ def _embedding_ablation_line(
     )
 
 
+@dataclass(frozen=True)
+class VerdictCase:
+    id: str
+    claim: str
+    expected_label: str
+
+
+@dataclass(frozen=True)
+class VerdictReport:
+    accuracy: float
+    correct: int
+    total: int
+    per_case: list[dict[str, str]]
+
+
+def load_verdict_cases(path: Path | None = None) -> list[VerdictCase]:
+    path = path or default_verdict_eval_path()
+    cases: list[VerdictCase] = []
+    with path.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            if not line.strip():
+                continue
+            item = json.loads(line)
+            cases.append(
+                VerdictCase(
+                    id=item["id"],
+                    claim=item["claim"],
+                    expected_label=item["expected_label"],
+                )
+            )
+    return cases
+
+
+def evaluate_verdicts(
+    records: list[CorpusRecord], cases: list[VerdictCase], *, k: int = 5
+) -> VerdictReport:
+    """Accuracy of the weighted verdict label against gold, incl. a negative control."""
+
+    retriever = ConceptAwareRetriever(records)
+    correct = 0
+    per_case: list[dict[str, str]] = []
+    for case in cases:
+        ranked = retriever.search(case.claim, top_k=k)
+        card = build_evidence_card(query=case.claim, retrieved=ranked, claim=case.claim)
+        predicted = card.verdict.label if card.verdict else "insufficient"
+        if predicted == case.expected_label:
+            correct += 1
+        per_case.append(
+            {"id": case.id, "expected": case.expected_label, "predicted": predicted}
+        )
+    total = len(cases) or 1
+    return VerdictReport(
+        accuracy=correct / total,
+        correct=correct,
+        total=len(cases),
+        per_case=per_case,
+    )
+
+
 def evaluate_faithfulness(
     records: list[CorpusRecord],
     responder,
@@ -501,6 +564,14 @@ def main() -> None:
         "  (hybrid re-applies the entity-grounding + polarity guards on top of the "
         "responder; faithfulness is guard-independent. A real LLM replaces the mock.)"
     )
+
+    verdict_report = evaluate_verdicts(records, load_verdict_cases())
+    print("")
+    print("# Weighted Verdict Evaluation")
+    print(f"- accuracy: {verdict_report.accuracy:.3f} ({verdict_report.correct}/{verdict_report.total})")
+    for case in verdict_report.per_case:
+        mark = "ok" if case["expected"] == case["predicted"] else "MISS"
+        print(f"- {case['id']}: expected={case['expected']} predicted={case['predicted']} [{mark}]")
 
 
 if __name__ == "__main__":

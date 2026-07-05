@@ -83,6 +83,23 @@ class QuantMeasurement:
 
 
 @dataclass(frozen=True)
+class Verdict:
+    """A weighted assessment of a claim from its supporting/conflicting evidence.
+
+    ``strength`` is the tier-weighted balance in [-1, 1] (positive = net support),
+    computed over independent sources rather than sentence counts. ``label`` is the
+    reader-facing grade; ``rationale`` shows the breakdown so the number is auditable.
+    """
+
+    label: str
+    strength: float
+    support_sources: int
+    conflict_sources: int
+    indirect_sentences: int
+    rationale: str
+
+
+@dataclass(frozen=True)
 class EvidenceCard:
     query: str
     retrieved: list[RetrievedRecord]
@@ -92,3 +109,4 @@ class EvidenceCard:
     limitations: list[str] = field(default_factory=list)
     next_checks: list[str] = field(default_factory=list)
     measurements: list[QuantMeasurement] = field(default_factory=list)
+    verdict: "Verdict | None" = None

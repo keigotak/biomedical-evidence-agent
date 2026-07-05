@@ -1,0 +1,4 @@
+{"id":"vd-001","claim":"BRAF melanoma is associated with response to targeted inhibitor treatment.","expected_label":"contested","note":"one clinical support (toy-002) vs one clinical conflict (toy-006)"}
+{"id":"vd-002","claim":"EGFR variants are associated with response to TKI in NSCLC.","expected_label":"well-supported","note":"clinical support, no conflicting evidence"}
+{"id":"vd-003","claim":"Neoantigen prediction can prioritize candidates using HLA typing, RNA expression, and peptide binding scores.","expected_label":"insufficient","note":"only in_silico support clears no directional bar"}
+{"id":"vd-004","claim":"TP53 mutation cures colorectal cancer with salbutamol.","expected_label":"insufficient","note":"negative control: no on-claim evidence"}

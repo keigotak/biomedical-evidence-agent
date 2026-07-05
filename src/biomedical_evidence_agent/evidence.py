@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from collections import Counter
 
 from .aliases import alias_tags
 from .ontology import Ontology
@@ -12,7 +13,20 @@ from .schemas import (
     EvidenceClaim,
     QuantMeasurement,
     RetrievedRecord,
+    Verdict,
 )
+
+# A claim needs at least this much tier-weighted, on-claim evidence before a
+# directional verdict is warranted; below it the verdict is "insufficient". The
+# floor is one in-vitro source (weight 0.5), so a single weak sentence never
+# reads as a settled result.
+MIN_VERDICT_EVIDENCE = 0.5
+# When both sides carry at least this share of the total weight, the claim is
+# "contested" rather than leaning one way.
+CONTESTED_SHARE = 0.35
+# Net balance at or above this counts as well-supported (little countervailing
+# evidence); between 0 and this is "mixed".
+WELL_SUPPORTED_BALANCE = 0.5
 
 GENE_TOKEN_RE = re.compile(r"[A-Za-z0-9]+(?:-[A-Za-z0-9]+)?")
 
@@ -261,6 +275,7 @@ def build_evidence_card(
         claim=claim,
         source=source,
         measurements=measurements,
+        verdict=assess_verdict(claims),
         limitations=[
             "Uses toy/sample abstracts by default; optional PubMed mode uses public metadata.",
             "Deterministic stance labeling is a scaffold for a future model-backed extractor.",
@@ -334,6 +349,78 @@ def _facets(terms: set[str]) -> tuple[str, ...]:
     return tuple(name for name, lexicon in FACETS.items() if terms & lexicon)
 
 
+def assess_verdict(claims: list[EvidenceClaim]) -> Verdict:
+    """Aggregate on-claim evidence into a tier-weighted, source-level verdict.
+
+    Sources are counted once per stance (a record's tier is fixed), so many
+    sentences from one weak study cannot outvote a single strong one. The net
+    balance and the per-tier breakdown are both surfaced so the grade is auditable.
+    """
+
+    support: dict[str, str] = {}
+    conflict: dict[str, str] = {}
+    indirect = 0
+    for claim in claims:
+        if claim.stance == "supports":
+            support[claim.source_id] = claim.tier
+        elif claim.stance == "conflicts":
+            conflict[claim.source_id] = claim.tier
+        else:
+            indirect += 1
+
+    support_weight = sum(TIER_WEIGHT.get(tier, 0.5) for tier in support.values())
+    conflict_weight = sum(TIER_WEIGHT.get(tier, 0.5) for tier in conflict.values())
+    total = support_weight + conflict_weight
+
+    if total < MIN_VERDICT_EVIDENCE:
+        label = "insufficient"
+        strength = 0.0
+    else:
+        balance = (support_weight - conflict_weight) / total
+        strength = round(balance, 3)
+        minority_share = min(support_weight, conflict_weight) / total
+        if support_weight > 0 and conflict_weight > 0 and minority_share >= CONTESTED_SHARE:
+            label = "contested"
+        elif balance >= WELL_SUPPORTED_BALANCE:
+            label = "well-supported"
+        else:
+            label = "mixed"
+
+    rationale = (
+        f"supports: {_tier_breakdown(support)}; "
+        f"conflicts: {_tier_breakdown(conflict)}; "
+        f"{indirect} indirect"
+    )
+    return Verdict(
+        label=label,
+        strength=strength,
+        support_sources=len(support),
+        conflict_sources=len(conflict),
+        indirect_sentences=indirect,
+        rationale=rationale,
+    )
+
+
+def _tier_breakdown(sources: dict[str, str]) -> str:
+    if not sources:
+        return "none"
+    counts = Counter(sources.values())
+    return ", ".join(f"{count}×{tier}" for tier, count in sorted(counts.items()))
+
+
+def _append_verdict(lines: list[str], verdict: Verdict | None) -> None:
+    if verdict is None:
+        return
+    lines.extend(
+        [
+            "",
+            "## Verdict",
+            f"- {verdict.label} (strength {verdict.strength:+.2f}) — {verdict.rationale}",
+            "- Weighted by study-design tier over independent sources; not clinical guidance.",
+        ]
+    )
+
+
 def _sentence_spans(text: str) -> list[tuple[str, int, int]]:
     """Split ``text`` into sentences while preserving character offsets.
 
@@ -366,6 +453,8 @@ def render_markdown(card: EvidenceCard) -> str:
     ]
     if card.claim:
         lines.append(f"Claim: {card.claim}")
+
+    _append_verdict(lines, card.verdict)
 
     lines.extend(["", "## Retrieved Evidence"])
     for item in card.retrieved:
