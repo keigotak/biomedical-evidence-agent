@@ -61,6 +61,7 @@ PubMed mode uses public title/abstract metadata only. The default mode remains t
 │   └── biomedical_evidence_agent/
 │       ├── cli.py                 # Command-line entry point
 │       ├── ontology.py            # Concept normalization
+│       ├── aliases.py             # Abbreviation/synonym alias tags (lexical baseline)
 │       ├── retrieval.py           # Lexical + concept-aware retrievers
 │       ├── embedding.py           # Optional embedding retriever ([semantic] extra)
 │       ├── evidence.py            # Evidence card generation

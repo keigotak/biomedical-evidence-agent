@@ -41,6 +41,16 @@ Claim: BRAF melanoma is associated with response to targeted inhibitor treatment
 
 ## Quantitative Evidence
 - No quantitative parameters extracted.
+
+## Limitations
+- Uses toy/sample abstracts by default; optional PubMed mode uses public metadata.
+- Deterministic stance labeling is a scaffold for a future model-backed extractor.
+- Evidence labels are illustrative research signals, not clinical guidance.
+
+## Next Checks
+- Review cited records manually before drawing scientific conclusions.
+- Add model-based claim extraction with citation-grounded outputs.
+- Evaluate evidence support with a curated benchmark.
 ```
 
 The EGFR sentence (`toy-001`) names a different gene than the `BRAF` claim, so entity grounding demotes it to insufficient instead of counting it as support.
