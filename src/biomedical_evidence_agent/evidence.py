@@ -30,6 +30,27 @@ INSUFFICIENT_CUES = {
     "hypotheses",
     "indirect",
 }
+RESPONSE_CUES = {
+    "benefit",
+    "benefits",
+    "durable",
+    "efficacy",
+    "remission",
+    "response",
+    "responses",
+    "responsive",
+    "sensitive",
+    "sensitivity",
+    "survival",
+}
+RESISTANCE_CUES = {
+    "progression",
+    "recurrence",
+    "refractory",
+    "relapse",
+    "resistance",
+    "resistant",
+}
 DISEASE_TERMS = {
     "cancer",
     "carcinoma",
@@ -131,6 +152,7 @@ def build_evidence_card(
 def extract_claims(query: str, retrieved: list[RetrievedRecord]) -> list[EvidenceClaim]:
     query_terms = set(tokenize(query))
     anchors = _claim_anchors(query, query_terms)
+    claim_polarity = _outcome_polarity(query_terms)
     claims: list[EvidenceClaim] = []
     for item in retrieved:
         sentences = SENTENCE_RE.split(item.record.abstract)
@@ -138,13 +160,20 @@ def extract_claims(query: str, retrieved: list[RetrievedRecord]) -> list[Evidenc
             sentence_terms = set(tokenize(sentence))
             if len(query_terms & sentence_terms) < 2:
                 continue
+            grounded = _entity_grounded(sentence_terms, anchors)
             claims.append(
                 EvidenceClaim(
                     text=sentence.strip(),
                     source_id=item.record.id,
                     evidence_type=item.record.evidence_type,
                     confidence=_confidence(item.score),
-                    stance=_stance(sentence_terms, anchors, item.score),
+                    stance=_stance(
+                        sentence_terms,
+                        anchors,
+                        item.score,
+                        claim_polarity=claim_polarity,
+                        grounded=grounded,
+                    ),
                 )
             )
     return claims
@@ -185,18 +214,53 @@ def _confidence(score: float) -> str:
     return "low"
 
 
-def _stance(sentence_terms: set[str], anchors: dict[str, set[str]], score: float) -> str:
+def _stance(
+    sentence_terms: set[str],
+    anchors: dict[str, set[str]],
+    score: float,
+    *,
+    claim_polarity: str | None,
+    grounded: bool,
+) -> str:
     anchor_categories = _anchor_category_count(sentence_terms, anchors)
     predicate_terms = anchors["predicate"] | PREDICATE_TERMS
     predicate_overlap = bool(sentence_terms & predicate_terms)
     strong_predicate_overlap = len(sentence_terms & predicate_terms) >= 2
     if INSUFFICIENT_CUES & sentence_terms or score < 0.3:
         return "insufficient"
-    if CONFLICT_CUES & sentence_terms and anchor_categories >= 2 and predicate_overlap:
+    if (
+        grounded
+        and CONFLICT_CUES & sentence_terms
+        and anchor_categories >= 2
+        and predicate_overlap
+    ):
         return "conflicts"
+    if not grounded:
+        return "insufficient"
     if (anchor_categories < 2 and not strong_predicate_overlap) or not predicate_overlap:
         return "insufficient"
+    sentence_polarity = _outcome_polarity(sentence_terms)
+    if claim_polarity and sentence_polarity and claim_polarity != sentence_polarity:
+        return "insufficient"
     return "supports"
+
+
+def _outcome_polarity(terms: set[str]) -> str | None:
+    has_response = bool(terms & RESPONSE_CUES)
+    has_resistance = bool(terms & RESISTANCE_CUES)
+    if has_response and not has_resistance:
+        return "response"
+    if has_resistance and not has_response:
+        return "resistance"
+    return None
+
+
+def _entity_grounded(sentence_terms: set[str], anchors: dict[str, set[str]]) -> bool:
+    if anchors["gene"]:
+        return bool(sentence_terms & anchors["gene"])
+    if anchors["disease"]:
+        return bool(sentence_terms & anchors["disease"])
+    return True
 
 
 def _claim_anchors(query: str, query_terms: set[str]) -> dict[str, set[str]]:

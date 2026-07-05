@@ -28,6 +28,11 @@ User query or biomedical claim
 
 `evidence.py` extracts candidate claims from retrieved abstracts by selecting sentences that mention query or claim terms. It then assigns a lightweight stance label: `supports`, `conflicts`, or `insufficient`. This is intentionally deterministic. The interface is designed so a model-backed extractor can replace it later.
 
+Stance labeling applies two attribution guards before a sentence can count as supporting or conflicting evidence:
+
+- **Entity grounding:** the sentence must mention the claim's principal entity (gene/variant token, or disease term when the claim names no gene). This prevents cross-entity mis-attribution, e.g. a `BRAF` sentence being attributed to an `EGFR` claim.
+- **Outcome polarity:** the claim's therapeutic direction (`response` vs `resistance`) is compared with the sentence's. A sentence describing the opposite outcome is demoted to insufficient/indirect rather than counted as support, so a `response` sentence does not support a `resistance` claim.
+
 ### Evidence Card
 
 The evidence card is the primary output object. It contains the query or claim, retrieved records, extracted evidence sentences grouped by stance, confidence labels, limitations, and suggested next checks.

@@ -58,6 +58,43 @@ class PipelineTest(unittest.TestCase):
             all(item.stance == "insufficient" for item in low_relevance_braf_claims)
         )
 
+    def test_response_sentence_is_not_supporting_a_resistance_claim(self) -> None:
+        records = load_corpus(ROOT / "data" / "sample_corpus.jsonl")
+        claim = (
+            "EGFR T790M is associated with resistance to first-generation EGFR "
+            "inhibitors in non-small cell lung cancer."
+        )
+        results = LexicalRetriever(records).search(claim, top_k=3)
+        card = build_evidence_card(query=claim, retrieved=results, claim=claim)
+
+        # The only strongly retrieved sentence describes response (opposite outcome),
+        # so it must not be attributed as supporting a resistance claim.
+        supporting = [item for item in card.claims if item.stance == "supports"]
+        self.assertFalse(supporting)
+        response_claim = next(
+            item
+            for item in card.claims
+            if "associated with response" in item.text
+        )
+        self.assertEqual(response_claim.stance, "insufficient")
+
+    def test_cross_gene_sentence_is_not_supporting_evidence(self) -> None:
+        records = load_corpus(ROOT / "data" / "sample_corpus.jsonl")
+        claim = "EGFR is associated with response to targeted therapy."
+        results = LexicalRetriever(records).search(claim, top_k=5)
+        card = build_evidence_card(query=claim, retrieved=results, claim=claim)
+
+        # BRAF sentences (toy-002/toy-006) do not name EGFR, so they cannot be
+        # grounded to the EGFR claim as supporting or conflicting evidence.
+        braf_stances = {
+            item.stance
+            for item in card.claims
+            if item.source_id in {"toy-002", "toy-006"}
+        }
+        self.assertTrue(braf_stances)
+        self.assertNotIn("supports", braf_stances)
+        self.assertNotIn("conflicts", braf_stances)
+
     def test_render_caps_evidence_sentences_per_source_and_stance(self) -> None:
         records = load_corpus(ROOT / "data" / "sample_corpus.jsonl")
         claim = "BRAF melanoma is associated with response to targeted inhibitor treatment."
