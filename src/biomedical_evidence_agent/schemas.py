@@ -26,6 +26,7 @@ class EvidenceClaim:
     evidence_type: str
     confidence: str
     stance: str = "insufficient"
+    facets: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 
+from .aliases import alias_tags
 from .retrieval import tokenize
 from .schemas import EvidenceCard, EvidenceClaim, RetrievedRecord
 
@@ -119,7 +120,81 @@ PREDICATE_TERMS = {
     "sensitivity",
     "survival",
 }
+MECHANISM_FACET = {
+    "activating",
+    "activation",
+    "antigen",
+    "binding",
+    "expression",
+    "kinase",
+    "mutation",
+    "mutations",
+    "neoantigen",
+    "pathway",
+    "peptide",
+    "presentation",
+    "reactivation",
+    "signaling",
+    "somatic",
+    "variant",
+    "variants",
+}
+CLINICAL_FACET = {
+    "benefit",
+    "benefits",
+    "cohort",
+    "efficacy",
+    "patients",
+    "progression",
+    "prognosis",
+    "recurrence",
+    "refractory",
+    "relapse",
+    "remission",
+    "resistance",
+    "resistant",
+    "response",
+    "responses",
+    "sensitivity",
+    "survival",
+    "tumor",
+    "tumors",
+}
+BIOMARKER_FACET = {
+    "associated",
+    "biomarker",
+    "correlate",
+    "correlates",
+    "marker",
+    "predict",
+    "predicts",
+    "status",
+    "stratify",
+}
+METHOD_FACET = {
+    "annotations",
+    "calls",
+    "prediction",
+    "ranking",
+    "score",
+    "scores",
+    "scoring",
+    "sequencing",
+    "typing",
+    "validation",
+    "workflow",
+}
+FACETS: dict[str, set[str]] = {
+    "mechanism": MECHANISM_FACET,
+    "clinical": CLINICAL_FACET,
+    "biomarker": BIOMARKER_FACET,
+    "method": METHOD_FACET,
+}
 MAX_SENTENCES_PER_SOURCE_STANCE = 2
+
+
+def _expand_terms(text: str) -> set[str]:
+    return set(tokenize(text)) | set(alias_tags(text))
 
 
 def build_evidence_card(
@@ -150,14 +225,15 @@ def build_evidence_card(
 
 
 def extract_claims(query: str, retrieved: list[RetrievedRecord]) -> list[EvidenceClaim]:
-    query_terms = set(tokenize(query))
+    query_terms = _expand_terms(query)
     anchors = _claim_anchors(query, query_terms)
     claim_polarity = _outcome_polarity(query_terms)
     claims: list[EvidenceClaim] = []
     for item in retrieved:
         sentences = SENTENCE_RE.split(item.record.abstract)
         for sentence in sentences:
-            sentence_terms = set(tokenize(sentence))
+            base_terms = set(tokenize(sentence))
+            sentence_terms = base_terms | set(alias_tags(sentence))
             if len(query_terms & sentence_terms) < 2:
                 continue
             grounded = _entity_grounded(sentence_terms, anchors)
@@ -174,9 +250,14 @@ def extract_claims(query: str, retrieved: list[RetrievedRecord]) -> list[Evidenc
                         claim_polarity=claim_polarity,
                         grounded=grounded,
                     ),
+                    facets=_facets(base_terms),
                 )
             )
     return claims
+
+
+def _facets(terms: set[str]) -> tuple[str, ...]:
+    return tuple(name for name, lexicon in FACETS.items() if terms & lexicon)
 
 
 def render_markdown(card: EvidenceCard) -> str:
@@ -198,6 +279,7 @@ def render_markdown(card: EvidenceCard) -> str:
     _append_claim_group(lines, "Supporting Evidence", card.claims, "supports")
     _append_claim_group(lines, "Conflicting Evidence", card.claims, "conflicts")
     _append_claim_group(lines, "Insufficient or Indirect Evidence", card.claims, "insufficient")
+    _append_facet_view(lines, card.claims)
 
     lines.extend(["", "## Limitations"])
     lines.extend(f"- {item}" for item in card.limitations)
@@ -298,9 +380,26 @@ def _append_claim_group(
         lines.append("- No extracted evidence in this category.")
         return
     for claim in selected:
+        facets = ", ".join(claim.facets) or "general"
         lines.append(
-            f"- [{claim.confidence} | {claim.evidence_type} | {claim.source_id}] {claim.text}"
+            f"- [{claim.confidence} | {claim.evidence_type} | {facets} | {claim.source_id}] {claim.text}"
         )
+
+
+def _append_facet_view(lines: list[str], claims: list[EvidenceClaim]) -> None:
+    lines.extend(["", "## Evidence by Angle"])
+    on_claim = [claim for claim in claims if claim.stance in ("supports", "conflicts")]
+    printed = False
+    for facet in FACETS:
+        group = _cap_per_source([claim for claim in on_claim if facet in claim.facets])
+        if not group:
+            continue
+        printed = True
+        lines.append(f"- {facet}:")
+        for claim in group:
+            lines.append(f"  - [{claim.stance} | {claim.source_id}] {claim.text}")
+    if not printed:
+        lines.append("- No supporting or conflicting evidence to group by angle yet.")
 
 
 def _cap_per_source(claims: list[EvidenceClaim]) -> list[EvidenceClaim]:
