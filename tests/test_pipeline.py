@@ -95,15 +95,39 @@ class PipelineTest(unittest.TestCase):
         self.assertNotIn("supports", braf_stances)
         self.assertNotIn("conflicts", braf_stances)
 
+    def test_abbreviation_query_retrieves_full_form_record(self) -> None:
+        records = load_corpus(ROOT / "data" / "sample_corpus.jsonl")
+        # The corpus spells "non-small cell lung cancer" and "tyrosine kinase
+        # inhibitors" out in full; the query uses abbreviations only.
+        results = LexicalRetriever(records).search("TKI response in NSCLC", top_k=2)
+        self.assertTrue(results)
+        self.assertEqual(results[0].record.id, "toy-001")
+
+    def test_claims_carry_multiple_facets(self) -> None:
+        records = load_corpus(ROOT / "data" / "sample_corpus.jsonl")
+        claim = "EGFR variants are associated with response to TKI in NSCLC."
+        results = LexicalRetriever(records).search(claim, top_k=3)
+        card = build_evidence_card(query=claim, retrieved=results, claim=claim)
+
+        supporting = next(item for item in card.claims if item.stance == "supports")
+        self.assertIn("mechanism", supporting.facets)
+        self.assertIn("clinical", supporting.facets)
+        self.assertGreaterEqual(len(supporting.facets), 2)
+
+        rendered = render_markdown(card)
+        self.assertIn("## Evidence by Angle", rendered)
+
     def test_render_caps_evidence_sentences_per_source_and_stance(self) -> None:
         records = load_corpus(ROOT / "data" / "sample_corpus.jsonl")
         claim = "BRAF melanoma is associated with response to targeted inhibitor treatment."
         results = LexicalRetriever(records).search(claim, top_k=4)
         card = build_evidence_card(query=claim, retrieved=results, claim=claim)
-        rendered = render_markdown(card)
+        # The cap applies to the stance sections; the later "Evidence by Angle"
+        # view intentionally re-lists the same sentences grouped by facet.
+        stance_sections = render_markdown(card).split("## Evidence by Angle")[0]
 
-        self.assertLessEqual(rendered.count("| toy-002]"), 2)
-        self.assertLessEqual(rendered.count("| toy-006]"), 2)
+        self.assertLessEqual(stance_sections.count("| toy-002]"), 2)
+        self.assertLessEqual(stance_sections.count("| toy-006]"), 2)
 
     def test_workflow_claim_can_be_supporting_evidence(self) -> None:
         records = load_corpus(ROOT / "data" / "sample_corpus.jsonl")
