@@ -73,13 +73,14 @@ The evidence card is the primary output object. It leads with the verdict, then 
 
 ### Evaluation
 
-`evaluation.py` scores the pipeline on four separated targets, so a change to one stage does not hide a regression in another:
+`evaluation.py` scores the pipeline on separated targets, so a change to one stage does not hide a regression in another:
 
 - **Entity linking:** set-level precision/recall/F1 of concept resolution, with negative controls (`data/evaluation_entities.jsonl`).
 - **Retrieval:** Recall@k and MRR with a lexical / +concept / +embedding ablation (`data/evaluation_claims.jsonl`).
 - **Stance:** per-class precision/recall/F1 plus guardrail metrics — cross-entity and opposite-polarity leaks, target zero (`data/evaluation_stances.jsonl`).
 - **Quantitative:** precision/recall/F1 on extracted (parameter, value, unit) tuples, with a negative control (`data/evaluation_quant.jsonl`).
 - **Verdict:** label accuracy of the weighted verdict against gold, including a negative-control claim that must land on `insufficient` (`data/evaluation_verdicts.jsonl`).
+- **Dossier indication verdict:** label accuracy of the per-indication target-validation verdict built inside the dossier, against gold `(target, disease)` pairs spanning `well-supported` / `contested` / `insufficient`, including a non-oncology control (`data/evaluation_dossiers.jsonl`). Distinct from the Verdict target above: it grades the verdict × dossier view end-to-end rather than a hand-written claim string.
 - **Extractor:** deterministic vs model-backed stance macro-F1, plus a **faithfulness rate** (fraction of a responder's proposed quotes that are verbatim in the source). The faithfulness metric is what a real model backend must be held to; the offline stand-in is faithful by construction and underperforms the deterministic guards on stance, which the ablation makes explicit.
 
 Run it with `python -m biomedical_evidence_agent.evaluation`.

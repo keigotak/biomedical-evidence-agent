@@ -57,7 +57,8 @@ PubMed mode uses public title/abstract metadata only. The default mode remains t
 │   ├── evaluation_entities.jsonl  # Entity-linking evaluation set
 │   ├── evaluation_stances.jsonl   # Stance + guardrail evaluation set
 │   ├── evaluation_quant.jsonl     # Quantitative-extraction evaluation set
-│   └── evaluation_verdicts.jsonl  # Weighted-verdict evaluation set
+│   ├── evaluation_verdicts.jsonl  # Weighted-verdict evaluation set
+│   └── evaluation_dossiers.jsonl  # Dossier per-indication verdict set
 ├── docs/
 │   ├── architecture.md            # Workflow and component design
 │   └── example_output.md          # Example evidence cards
@@ -112,7 +113,7 @@ python -m biomedical_evidence_agent.cli --claim "..." --extractor llm
 # Target-centric dossier (local corpus): modulators, potencies, contexts, tiers
 python -m biomedical_evidence_agent.cli --target EGFR
 
-# Evaluation suite: entity linking, retrieval ablation, stance guardrails, quantitative, verdict
+# Evaluation suite: entity linking, retrieval ablation, stance guardrails, quantitative, verdict, dossier indication verdict
 python -m biomedical_evidence_agent.evaluation
 
 python -m unittest discover -s tests

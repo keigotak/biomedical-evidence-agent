@@ -4,6 +4,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
+from .dossier import DossierError, build_target_dossier
 from .evidence import build_evidence_card
 from .ontology import Ontology
 from .quant import extract_measurements
@@ -33,6 +34,10 @@ def default_quant_eval_path() -> Path:
 
 def default_verdict_eval_path() -> Path:
     return Path(__file__).resolve().parents[2] / "data" / "evaluation_verdicts.jsonl"
+
+
+def default_dossier_eval_path() -> Path:
+    return Path(__file__).resolve().parents[2] / "data" / "evaluation_dossiers.jsonl"
 
 
 @dataclass(frozen=True)
@@ -442,6 +447,79 @@ def evaluate_verdicts(
     )
 
 
+@dataclass(frozen=True)
+class DossierVerdictCase:
+    id: str
+    target: str
+    disease: str
+    expected_label: str
+
+
+@dataclass(frozen=True)
+class DossierVerdictReport:
+    accuracy: float
+    correct: int
+    total: int
+    per_case: list[dict[str, str]]
+
+
+def load_dossier_cases(path: Path | None = None) -> list[DossierVerdictCase]:
+    path = path or default_dossier_eval_path()
+    cases: list[DossierVerdictCase] = []
+    with path.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            if not line.strip():
+                continue
+            item = json.loads(line)
+            cases.append(
+                DossierVerdictCase(
+                    id=item["id"],
+                    target=item["target"],
+                    disease=item["disease"],
+                    expected_label=item["expected_label"],
+                )
+            )
+    return cases
+
+
+def evaluate_dossier_verdicts(
+    records: list[CorpusRecord],
+    cases: list[DossierVerdictCase],
+    *,
+    ontology: Ontology | None = None,
+) -> DossierVerdictReport:
+    """Accuracy of per-indication target-validation verdicts against gold.
+
+    Builds the target dossier and checks the verdict label attached to each
+    gold (target, disease) pair. This grades the dossier's verdict × dossier
+    view directly, as opposed to the on-claim verdict eval which scores a
+    hand-written claim string.
+    """
+
+    ontology = ontology or Ontology.load()
+    correct = 0
+    per_case: list[dict[str, str]] = []
+    for case in cases:
+        try:
+            dossier = build_target_dossier(case.target, records, ontology=ontology)
+            verdict = dossier.indication_verdicts.get(case.disease)
+            predicted = verdict.label if verdict else "insufficient"
+        except DossierError:
+            predicted = "unresolved"
+        if predicted == case.expected_label:
+            correct += 1
+        per_case.append(
+            {"id": case.id, "expected": case.expected_label, "predicted": predicted}
+        )
+    total = len(cases) or 1
+    return DossierVerdictReport(
+        accuracy=correct / total,
+        correct=correct,
+        total=len(cases),
+        per_case=per_case,
+    )
+
+
 def evaluate_faithfulness(
     records: list[CorpusRecord],
     responder,
@@ -570,6 +648,17 @@ def main() -> None:
     print("# Weighted Verdict Evaluation")
     print(f"- accuracy: {verdict_report.accuracy:.3f} ({verdict_report.correct}/{verdict_report.total})")
     for case in verdict_report.per_case:
+        mark = "ok" if case["expected"] == case["predicted"] else "MISS"
+        print(f"- {case['id']}: expected={case['expected']} predicted={case['predicted']} [{mark}]")
+
+    dossier_report = evaluate_dossier_verdicts(records, load_dossier_cases(), ontology=ontology)
+    print("")
+    print("# Dossier Indication-Verdict Evaluation")
+    print(
+        f"- accuracy: {dossier_report.accuracy:.3f} "
+        f"({dossier_report.correct}/{dossier_report.total})"
+    )
+    for case in dossier_report.per_case:
         mark = "ok" if case["expected"] == case["predicted"] else "MISS"
         print(f"- {case['id']}: expected={case['expected']} predicted={case['predicted']} [{mark}]")
 

@@ -6,9 +6,11 @@ from pathlib import Path
 
 from biomedical_evidence_agent.evaluation import (
     evaluate_entity_linking,
+    evaluate_dossier_verdicts,
     evaluate_quant,
     evaluate_stance,
     evaluate_verdicts,
+    load_dossier_cases,
     load_entity_cases,
     load_quant_cases,
     load_retrieval_cases,
@@ -362,6 +364,14 @@ class VerdictTest(unittest.TestCase):
         records = load_corpus(ROOT / "data" / "sample_corpus.jsonl")
         cases = load_verdict_cases(ROOT / "data" / "evaluation_verdicts.jsonl")
         report = evaluate_verdicts(records, cases)
+        self.assertEqual(report.accuracy, 1.0)
+
+    def test_dossier_indication_verdict_evaluation_matches_gold(self) -> None:
+        records = load_corpus(ROOT / "data" / "sample_corpus.jsonl")
+        cases = load_dossier_cases(ROOT / "data" / "evaluation_dossiers.jsonl")
+        # Gold spans all three verdict labels incl. a non-oncology control.
+        self.assertEqual(len({c.expected_label for c in cases}), 3)
+        report = evaluate_dossier_verdicts(records, cases)
         self.assertEqual(report.accuracy, 1.0)
 
 
