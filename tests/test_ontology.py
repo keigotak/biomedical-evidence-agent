@@ -316,6 +316,56 @@ class TargetDossierTest(unittest.TestCase):
         braf = self._dossier("BRAF")
         self.assertEqual(braf.indication_verdicts["melanoma"].label, "contested")
 
+    def test_modulator_verdict_grades_only_potency_as_insufficient(self) -> None:
+        # On the shared corpus every EGFR modulator has potency/declaration but no
+        # drug-specific outcome sentence, so validation must stay insufficient.
+        egfr = self._dossier("EGFR")
+        by_name = {c.name: c for c in egfr.compounds}
+        self.assertEqual(by_name["osimertinib"].verdict.label, "insufficient")
+
+    def test_modulator_verdict_is_drug_grounded_no_cross_entity_leak(self) -> None:
+        from biomedical_evidence_agent.dossier import build_target_dossier
+        from biomedical_evidence_agent.schemas import CorpusRecord
+
+        def record(rid: str, abstract: str, design: str = "clinical") -> CorpusRecord:
+            return CorpusRecord(
+                id=rid,
+                title=rid,
+                year=2022,
+                entities={"genes": ["EGFR"], "diseases": ["non-small cell lung cancer"]},
+                abstract=abstract,
+                evidence_type="therapeutic",
+                study_design=design,
+            )
+
+        records = [
+            # Target-level outcome evidence naming EGFR but NO specific drug — the leak bait.
+            record(
+                "r-egfr",
+                "EGFR activating variants are associated with response to tyrosine "
+                "kinase inhibitors in non-small cell lung cancer.",
+            ),
+            # Drug-specific outcome evidence naming osimertinib.
+            record(
+                "r-osi",
+                "Osimertinib was associated with durable clinical response in "
+                "non-small cell lung cancer.",
+            ),
+            # Gefitinib appears only with potency, never in an outcome sentence.
+            record(
+                "r-gef",
+                "In a synthetic in vitro assay gefitinib inhibited the target with "
+                "an IC50 of 38 nM.",
+                design="in_vitro",
+            ),
+        ]
+        dossier = build_target_dossier("EGFR", records, ontology=self.ontology)
+        by_name = {c.name: c for c in dossier.compounds}
+        # Osimertinib is validated by its own outcome sentence.
+        self.assertEqual(by_name["osimertinib"].verdict.label, "well-supported")
+        # Gefitinib must NOT inherit the EGFR-level support: no drug-grounded outcome.
+        self.assertEqual(by_name["gefitinib"].verdict.label, "insufficient")
+
 
 class VerdictTest(unittest.TestCase):
     @staticmethod

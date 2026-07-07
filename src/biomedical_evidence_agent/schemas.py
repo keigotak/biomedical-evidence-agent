@@ -90,6 +90,7 @@ class DossierCompound:
     name: str
     declared_target: bool
     measurements: tuple[QuantMeasurement, ...] = ()
+    verdict: "Verdict | None" = None
 
 
 @dataclass(frozen=True)

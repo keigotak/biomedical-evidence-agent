@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from .evidence import FACETS, _evidence_tier, build_evidence_card
+from dataclasses import replace
+
+from .evidence import FACETS, _evidence_tier, assess_verdict, build_evidence_card
 from .ontology import Ontology
 from .quant import extract_measurements
 from .retrieval import ConceptAwareRetriever, tokenize
@@ -49,6 +51,7 @@ def build_target_dossier(
     ]
 
     compounds = _collect_compounds(target_concept.id, matched, measurements, ontology)
+    compounds = _grade_modulators(compounds, records, ontology)
     diseases = _collect_by_type(matched, ontology, "disease")
     angles = _collect_angles(matched)
     tiers = _collect_tiers(matched)
@@ -98,6 +101,46 @@ def _indication_verdicts(
         if card.verdict is not None:
             verdicts[disease] = card.verdict
     return verdicts
+
+
+def _grade_modulators(
+    compounds: tuple[DossierCompound, ...],
+    records: list[CorpusRecord],
+    ontology: Ontology,
+    *,
+    top_k: int = 5,
+) -> tuple[DossierCompound, ...]:
+    """Attach a drug-grounded validation verdict to each modulator.
+
+    For every modulator, a drug-anchored association claim is retrieved,
+    extracted, and scored. The claim carries no gene anchor, so stance grounding
+    already requires the sentence to name the drug; as an explicit, auditable
+    guard we additionally keep only sentences whose *source record* names this
+    modulator. Both together guarantee target-level outcome evidence is never
+    mis-credited to a specific agent — the cross-entity attribution the whole
+    pipeline exists to prevent. A modulator with only potency/PK or a bare
+    ontology declaration therefore lands on ``insufficient``, separating
+    "validated in outcomes" from "characterized in vitro only".
+    """
+
+    if not compounds:
+        return compounds
+    retriever = ConceptAwareRetriever(records, ontology)
+    by_id = {record.id: record for record in records}
+    graded: list[DossierCompound] = []
+    for compound in compounds:
+        claim = f"{compound.name} is associated with clinical response to targeted therapy."
+        ranked = retriever.search(claim, top_k=top_k)
+        card = build_evidence_card(
+            query=claim, retrieved=ranked, claim=claim, ontology=ontology
+        )
+        grounded = [
+            item
+            for item in card.claims
+            if compound.concept_id in ontology.concept_ids(by_id[item.source_id].abstract)
+        ]
+        graded.append(replace(compound, verdict=assess_verdict(grounded)))
+    return tuple(graded)
 
 
 def _resolve_target(target: str, ontology: Ontology):
@@ -201,7 +244,16 @@ def render_dossier(dossier: TargetDossier) -> str:
             f" [{m.source_id}@{m.start}-{m.end}]"
             for m in compound.measurements
         )
-        lines.append(f"- {compound.name}{tag}" + (f" — {potency}" if potency else ""))
+        validation = (
+            f" · validation: {compound.verdict.label} ({compound.verdict.strength:+.2f})"
+            if compound.verdict is not None
+            else ""
+        )
+        lines.append(
+            f"- {compound.name}{tag}"
+            + (f" — {potency}" if potency else "")
+            + validation
+        )
 
     lines.extend(["", "## Indication Evidence"])
     if not dossier.diseases:
