@@ -304,6 +304,16 @@ class TargetDossierTest(unittest.TestCase):
         with self.assertRaises(DossierError):
             self._dossier("nonexistent frobnicator")
 
+    def test_indication_verdicts_grade_target_validation(self) -> None:
+        egfr = self._dossier("EGFR")
+        self.assertEqual(
+            egfr.indication_verdicts["non-small cell lung cancer"].label,
+            "well-supported",
+        )
+        # BRAF/melanoma has one clinical support and one clinical conflict.
+        braf = self._dossier("BRAF")
+        self.assertEqual(braf.indication_verdicts["melanoma"].label, "contested")
+
 
 class VerdictTest(unittest.TestCase):
     @staticmethod

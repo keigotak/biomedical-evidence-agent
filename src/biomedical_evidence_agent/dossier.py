@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from .evidence import FACETS, _evidence_tier
+from .evidence import FACETS, _evidence_tier, build_evidence_card
 from .ontology import Ontology
 from .quant import extract_measurements
-from .retrieval import tokenize
-from .schemas import CorpusRecord, DossierCompound, TargetDossier
+from .retrieval import ConceptAwareRetriever, tokenize
+from .schemas import CorpusRecord, DossierCompound, TargetDossier, Verdict
 
 _DRUG_TYPES = ("drug", "drug_class")
 
@@ -52,6 +52,9 @@ def build_target_dossier(
     diseases = _collect_by_type(matched, ontology, "disease")
     angles = _collect_angles(matched)
     tiers = _collect_tiers(matched)
+    indication_verdicts = _indication_verdicts(
+        target_concept.canonical, diseases, records, ontology
+    )
 
     return TargetDossier(
         target_id=target_concept.id,
@@ -62,7 +65,39 @@ def build_target_dossier(
         diseases=diseases,
         angles=angles,
         tiers=tiers,
+        indication_verdicts=indication_verdicts,
     )
+
+
+def _indication_verdicts(
+    target_name: str,
+    diseases: tuple[str, ...],
+    records: list[CorpusRecord],
+    ontology: Ontology,
+    *,
+    top_k: int = 5,
+) -> dict[str, Verdict]:
+    """Run the claim pipeline per target–disease pair to grade target validation.
+
+    This is verdict × dossier: for each indication the target appears in, a
+    synthesized association claim is retrieved, extracted, and scored, so the
+    dossier answers "is this target validated here, and how strongly" — with the
+    same tier-weighted, source-level verdict used for a standalone claim.
+    """
+
+    retriever = ConceptAwareRetriever(records, ontology)
+    verdicts: dict[str, Verdict] = {}
+    for disease in diseases:
+        claim = (
+            f"{target_name} is associated with response to targeted therapy in {disease}."
+        )
+        ranked = retriever.search(claim, top_k=top_k)
+        card = build_evidence_card(
+            query=claim, retrieved=ranked, claim=claim, ontology=ontology
+        )
+        if card.verdict is not None:
+            verdicts[disease] = card.verdict
+    return verdicts
 
 
 def _resolve_target(target: str, ontology: Ontology):
@@ -168,11 +203,18 @@ def render_dossier(dossier: TargetDossier) -> str:
         )
         lines.append(f"- {compound.name}{tag}" + (f" — {potency}" if potency else ""))
 
-    lines.extend(["", "## Disease contexts"])
-    if dossier.diseases:
-        lines.extend(f"- {name}" for name in dossier.diseases)
-    else:
+    lines.extend(["", "## Indication Evidence"])
+    if not dossier.diseases:
         lines.append("- None found.")
+    for name in dossier.diseases:
+        verdict = dossier.indication_verdicts.get(name)
+        if verdict is None:
+            lines.append(f"- {name}")
+        else:
+            lines.append(
+                f"- {name}: {verdict.label} (strength {verdict.strength:+.2f}) "
+                f"— {verdict.rationale}"
+            )
 
     lines.extend(["", "## Evidence by Angle"])
     if not dossier.angles:

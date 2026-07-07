@@ -109,6 +109,7 @@ class TargetDossier:
     diseases: tuple[str, ...]
     angles: dict[str, tuple[str, ...]]
     tiers: dict[str, int]
+    indication_verdicts: dict[str, "Verdict"] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
