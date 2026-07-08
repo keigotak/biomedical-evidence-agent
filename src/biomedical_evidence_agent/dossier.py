@@ -126,20 +126,21 @@ def _grade_modulators(
     """Attach a drug-grounded validation verdict to each modulator.
 
     For every modulator, a drug-anchored association claim is retrieved,
-    extracted, and scored. The claim carries no gene anchor, so stance grounding
-    already requires the sentence to name the drug; as an explicit, auditable
-    guard we additionally keep only sentences whose *source record* names this
-    modulator. Both together guarantee target-level outcome evidence is never
-    mis-credited to a specific agent — the cross-entity attribution the whole
-    pipeline exists to prevent. A modulator with only potency/PK or a bare
-    ontology declaration therefore lands on ``insufficient``, separating
-    "validated in outcomes" from "characterized in vitro only".
+    extracted, and scored. As an explicit, auditable guard we keep only sentences
+    that themselves name this modulator (its concept resolves in the sentence
+    text, not merely somewhere in the abstract). This guarantees target-level
+    outcome evidence is never mis-credited to a specific agent — the cross-entity
+    attribution the whole pipeline exists to prevent — even for a drug-class name
+    that embeds a gene acronym (e.g. "EGFR inhibitor"), where an abstract-level
+    check would otherwise leak the gene's evidence onto the class. A modulator
+    with only potency/PK or a bare ontology declaration therefore lands on
+    ``insufficient``, separating "validated in outcomes" from "characterized in
+    vitro only".
     """
 
     if not compounds:
         return compounds
     retriever = ConceptAwareRetriever(records, ontology)
-    by_id = {record.id: record for record in records}
     graded: list[DossierCompound] = []
     for compound in compounds:
         claim = f"{compound.name} is associated with clinical response to targeted therapy."
@@ -150,7 +151,7 @@ def _grade_modulators(
         grounded = [
             item
             for item in card.claims
-            if compound.concept_id in ontology.concept_ids(by_id[item.source_id].abstract)
+            if compound.concept_id in ontology.concept_ids(item.text)
         ]
         graded.append(replace(compound, verdict=assess_verdict(grounded)))
     return tuple(graded)

@@ -377,6 +377,28 @@ class TargetDossierTest(unittest.TestCase):
         adrb2 = {c.name: c for c in self._dossier("beta-2 adrenergic receptor").compounds}
         self.assertEqual(adrb2["salbutamol"].mechanism, "agonist")
 
+    def test_drug_class_name_embedding_gene_does_not_inherit_gene_evidence(self) -> None:
+        # "EGFR inhibitor" (a drug_class whose name embeds a gene acronym) must not
+        # be credited with a gene-variant outcome sentence that never names the drug.
+        from biomedical_evidence_agent.dossier import build_target_dossier
+        from biomedical_evidence_agent.schemas import CorpusRecord
+
+        rec = CorpusRecord(
+            id="r1",
+            title="EGFR variants and outcome",
+            year=2021,
+            entities={"genes": ["EGFR"], "diseases": ["non-small cell lung cancer"]},
+            abstract=(
+                "EGFR activating variants are associated with durable clinical response "
+                "in non-small cell lung cancer. Separately, EGFR inhibitor development "
+                "is reviewed elsewhere."
+            ),
+            evidence_type="clinical association",
+            study_design="clinical",
+        )
+        by_name = {c.name: c for c in build_target_dossier("EGFR", [rec], ontology=self.ontology).compounds}
+        self.assertEqual(by_name["EGFR inhibitor"].verdict.label, "insufficient")
+
 
 class MoaExtractionTest(unittest.TestCase):
     @classmethod
@@ -411,10 +433,49 @@ class MoaExtractionTest(unittest.TestCase):
         rels = self._extract("Osimertinib was tested while BRAF signaling was inhibited.")
         self.assertEqual([(r.drug_name, r.target_name) for r in rels], [])
 
+    def test_negated_cue_yields_no_relation(self) -> None:
+        # "did not inhibit" must not be read as an antagonist relation.
+        self.assertEqual(
+            self._extract("Osimertinib did not inhibit mutant EGFR at the tested doses."),
+            [],
+        )
+
+    def test_provenance_span_slices_back_to_the_quote(self) -> None:
+        # Leading whitespace on the first sentence must not shift the span.
+        text = "   Osimertinib inhibited EGFR here."
+        rel = self._extract(text)[0]
+        self.assertEqual(text[rel.start:rel.end], rel.quote)
+
     def test_moa_evaluation_matches_gold(self) -> None:
         report = evaluate_moa(load_moa_cases(ROOT / "data" / "evaluation_moa.jsonl"))
         self.assertEqual(report.f1, 1.0)
         self.assertEqual(report.false_positives, 0)
+
+
+class QuantRobustnessTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.ontology = Ontology.load(ROOT / "data" / "ontology.jsonl")
+
+    def _params(self, text: str):
+        return [(m.parameter, m.value, m.unit) for m in extract_measurements(text, ontology=self.ontology)]
+
+    def test_ki67_is_not_read_as_the_binding_constant(self) -> None:
+        # "Ki-67" (proliferation marker) must not match the potency parameter Ki.
+        self.assertEqual(self._params("The Ki-67 proliferation index was 5% in tumor samples."), [])
+
+    def test_reagent_mass_is_not_a_potency(self) -> None:
+        # A Ki reported in mg is a reagent mass, not a binding constant.
+        self.assertEqual(self._params("Ki determination used 5 mg of purified protein."), [])
+
+    def test_negated_value_is_skipped(self) -> None:
+        self.assertEqual(self._params("The IC50 was not reached at 100 nM."), [])
+
+    def test_real_potency_is_still_extracted(self) -> None:
+        self.assertEqual(
+            self._params("osimertinib inhibited EGFR with an IC50 of 12 nM"),
+            [("IC50", 12.0, "nM")],
+        )
 
 
 class VerdictTest(unittest.TestCase):

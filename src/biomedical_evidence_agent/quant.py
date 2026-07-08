@@ -42,6 +42,27 @@ _UNIT_CANON = {
 _ENTITY_TYPES = ("drug", "drug_class", "gene")
 _WINDOW = 40
 
+# Units that are physically plausible for a parameter, keyed by canonical unit.
+# A parameter absent from this map accepts any unit (e.g. Cmax/AUC/clearance,
+# whose units vary). Potency/affinity are concentrations; a "Ki" reported in mg
+# or % is a misread (a reagent mass, or "Ki-67" the proliferation marker), so it
+# is rejected rather than emitted.
+_CONCENTRATION = {"nM", "pM", "mM", "µM", "M", "ng/mL", "µg/mL"}
+_TIME = {"h", "min"}
+_ALLOWED_UNITS = {
+    "IC50": _CONCENTRATION,
+    "EC50": _CONCENTRATION,
+    "GI50": _CONCENTRATION,
+    "Ki": _CONCENTRATION,
+    "Kd": _CONCENTRATION,
+    "half-life": _TIME,
+    "bioavailability": {"%"},
+}
+# A value negated before it is stated ("was not reached at 100 nM") asserts the
+# opposite; abstain rather than record the wrong number.
+_NEGATION = {"not", "no", "without", "never", "unable", "unavailable", "fail", "failed", "fails"}
+_WORD_RE = re.compile(r"[a-z]+")
+
 
 def _sentence_spans(text: str) -> list[tuple[str, int]]:
     spans: list[tuple[str, int]] = []
@@ -72,14 +93,21 @@ def extract_measurements(
         entity_ids = tuple(dict.fromkeys(match.concept.id for match in entity_spans))
         for name, pattern in PARAM_PATTERNS:
             regex = re.compile(
-                r"(?<![A-Za-z0-9])(?:" + pattern + r")(?![A-Za-z0-9])", re.IGNORECASE
+                r"(?<![A-Za-z0-9-])(?:" + pattern + r")(?![A-Za-z0-9-])", re.IGNORECASE
             )
             for param_match in regex.finditer(sentence):
                 window = sentence[param_match.end() : param_match.end() + _WINDOW]
                 value_match = _VALUE_RE.search(window)
                 if not value_match:
                     continue
+                # Skip if the value is negated before it is stated.
+                if set(_WORD_RE.findall(window[: value_match.start()].lower())) & _NEGATION:
+                    continue
                 unit = value_match.group("unit")
+                canonical_unit = _UNIT_CANON.get(unit, unit)
+                allowed = _ALLOWED_UNITS.get(name)
+                if allowed is not None and canonical_unit not in allowed:
+                    continue
                 primary = _primary_entity(entity_spans, param_match.start())
                 measurements.append(
                     QuantMeasurement(

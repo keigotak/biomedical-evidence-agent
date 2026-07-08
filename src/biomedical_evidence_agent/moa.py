@@ -65,7 +65,17 @@ def _sentence_spans(text: str) -> list[tuple[str, int]]:
     return [(sentence, offset) for sentence, offset in spans if sentence.strip()]
 
 
+# A negated directional cue ("did not inhibit") reverses the mechanism; abstain
+# rather than assert the opposite of what the sentence says.
+NEGATION_CUES = frozenset(
+    {"not", "no", "never", "without", "fails", "failed", "fail",
+     "cannot", "unable", "lacks", "lack", "neither", "nor"}
+)
+
+
 def _mechanism_from_cues(words: set[str]) -> str:
+    if words & NEGATION_CUES:
+        return ""
     agonist = bool(words & AGONIST_CUES)
     antagonist = bool(words & ANTAGONIST_CUES)
     if agonist and not antagonist:
@@ -98,6 +108,10 @@ def extract_moa(
         mechanism = _mechanism_from_cues(words)
         if not mechanism:
             continue
+        # Trim so the provenance span slices back to the exact quote.
+        quote = sentence.strip()
+        start = offset + (len(sentence) - len(sentence.lstrip()))
+        end = start + len(quote)
         matches = ontology.normalize(sentence)
         genes = {m.concept.id for m in matches if m.concept.type == "gene"}
         if not genes:
@@ -116,9 +130,9 @@ def extract_moa(
                         target_name=ontology.concepts[target_id].canonical,
                         mechanism=mechanism,
                         source_id=source_id,
-                        quote=sentence.strip(),
-                        start=offset,
-                        end=offset + len(sentence.rstrip()),
+                        quote=quote,
+                        start=start,
+                        end=end,
                     )
                 )
     return relations
