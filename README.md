@@ -76,7 +76,7 @@ This is a compact but real evidence-synthesis stack. The repo (`biomedical-evide
 
 The implementation is intentionally compact. It is meant to show the shape of a biology-facing biomedical AI workflow, not to provide clinical or production guidance.
 
-See [`docs/differentiation.md`](docs/differentiation.md) for what makes this an *auditor* rather than a search tool, and [`docs/hackathon_demo.md`](docs/hackathon_demo.md) for a 2-minute demo script.
+See [`docs/differentiation.md`](docs/differentiation.md) for what makes this an *auditor* rather than a search tool, and [`docs/demo_video.md`](docs/demo_video.md) for a 3-minute demo-video storyboard (or [`docs/hackathon_demo.md`](docs/hackathon_demo.md) for the 2-minute live-demo script).
 
 ## Web UI (Docker)
 
@@ -170,7 +170,8 @@ PYTHONPATH=src python experiments/compare_claims.py
 │   ├── architecture.md            # Workflow and component design
 │   ├── differentiation.md         # Why this is a claim auditor, not a search tool
 │   ├── evaluation.md              # Eval design, n per stream, honest caveats + stress set
-│   ├── hackathon_demo.md          # 2-minute demo script
+│   ├── hackathon_demo.md          # 2-minute live-demo script
+│   ├── demo_video.md              # 3-minute demo-video storyboard + narration
 │   ├── hero.svg                   # README hero (rendered from real output)
 │   └── example_output.md          # Example evidence cards
 ├── scripts/
