@@ -63,6 +63,15 @@ cancer *incidence* (null) vs *mortality* (a possible benefit) — and names the
 **D-Health trial** as the next source, every quote re-grounded against its
 abstract. Full snapshot: [`outputs/example_claim_audit_vitamin_d_pubmed.md`](outputs/example_claim_audit_vitamin_d_pubmed.md).
 
+And it behaves like a **system**, not a one-off: run it over 10 known claims on
+live PubMed (`scripts/pubmed_scan.py`) and the verdicts distribute sensibly — the
+established oncology claims land `well-supported`, the debunked ones
+`contradicted`. That scan also **measures why the extractor is Claude**: on messy
+real claims the deterministic rules break — even grading *beta-carotene prevents
+lung cancer* as well-supported (it raised lung-cancer risk in ATBC/CARET) — while
+the Claude extractor correctly flags it `contradicted`. Snapshot:
+[`outputs/example_pubmed_scan.md`](outputs/example_pubmed_scan.md).
+
 ## Core Workflow
 
 **claim → retrieval → evidence extraction → stance labeling → citation / overclaim / contradiction audit → reviewer critique → Claim Audit Report**
@@ -197,6 +206,7 @@ PYTHONPATH=src python experiments/compare_claims.py
 ├── scripts/
 │   ├── render_hero.py             # Regenerates docs/hero.svg from a real audit
 │   ├── eval_llm_ablation.py       # Extractor ablation on the real Claude backend
+│   ├── pubmed_scan.py             # Audit N real claims on live PubMed (det vs Claude)
 │   └── demo.sh                    # One-command paced driver for the demo video
 ├── outputs/
 │   ├── example_claim_audit.md     # Saved Claim Audit Report (BRAF, demo artifact)
@@ -208,7 +218,9 @@ PYTHONPATH=src python experiments/compare_claims.py
 │   ├── example_reviewer_duel_claude.md # Same debate on real Claude (3 agents)
 │   ├── example_evidence_map.html  # Visual per-entity Evidence Map (open in a browser)
 │   ├── example_claim_comparison.md # Several claims audited side by side
-│   └── example_extractor_ablation.md # Guard ablation on real Claude (snapshot)
+│   ├── example_extractor_ablation.md # Guard ablation on real Claude (snapshot)
+│   ├── example_claim_audit_vitamin_d_pubmed.md # Live-PubMed hero (contradicted)
+│   └── example_pubmed_scan.md     # 10 real claims: deterministic vs Claude
 ├── experiments/                   # Side modules; do not affect the main demo
 │   ├── hypothesis_stress_test.py  # Multi-angle claim stress test
 │   ├── compare_claims.py          # Audit several claims into one comparison table
