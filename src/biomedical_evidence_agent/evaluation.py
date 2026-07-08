@@ -6,6 +6,7 @@ from pathlib import Path
 
 from .dossier import DossierError, build_target_dossier
 from .evidence import build_evidence_card
+from .moa import extract_moa
 from .ontology import Ontology
 from .quant import extract_measurements
 from .retrieval import ConceptAwareRetriever, LexicalRetriever, load_corpus
@@ -38,6 +39,10 @@ def default_verdict_eval_path() -> Path:
 
 def default_dossier_eval_path() -> Path:
     return Path(__file__).resolve().parents[2] / "data" / "evaluation_dossiers.jsonl"
+
+
+def default_moa_eval_path() -> Path:
+    return Path(__file__).resolve().parents[2] / "data" / "evaluation_moa.jsonl"
 
 
 @dataclass(frozen=True)
@@ -370,6 +375,61 @@ def evaluate_quant(
     )
 
 
+@dataclass(frozen=True)
+class MoaCase:
+    id: str
+    text: str
+    expected: tuple[tuple[str, str, str], ...]
+
+
+def load_moa_cases(path: Path | None = None) -> list[MoaCase]:
+    path = path or default_moa_eval_path()
+    cases: list[MoaCase] = []
+    with path.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            if not line.strip():
+                continue
+            item = json.loads(line)
+            expected = tuple(
+                (row["drug"], row["target"], row["mechanism"])
+                for row in item.get("expected", [])
+            )
+            cases.append(MoaCase(id=item["id"], text=item["text"], expected=expected))
+    return cases
+
+
+def evaluate_moa(cases: list[MoaCase], *, ontology: Ontology | None = None) -> QuantReport:
+    """Precision/recall of MoA extraction on (drug, target, mechanism) triples.
+
+    Reuses QuantReport's shape. Negative-control cases (a gene activated by a
+    variant, a 'suppressor' cue with no drug) must yield no relation, so a
+    spurious extraction shows up as a false positive.
+    """
+
+    ontology = ontology or Ontology.load()
+    tp = fp = fn = 0
+    for case in cases:
+        predicted = {
+            (r.drug_name, r.target_name, r.mechanism)
+            for r in extract_moa(case.text, ontology=ontology)
+        }
+        expected = set(case.expected)
+        tp += len(predicted & expected)
+        fp += len(predicted - expected)
+        fn += len(expected - predicted)
+    precision = tp / (tp + fp) if (tp + fp) else 1.0
+    recall = tp / (tp + fn) if (tp + fn) else 1.0
+    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) else 0.0
+    return QuantReport(
+        precision=precision,
+        recall=recall,
+        f1=f1,
+        true_positives=tp,
+        false_positives=fp,
+        false_negatives=fn,
+    )
+
+
 def _embedding_ablation_line(
     records: list[CorpusRecord], cases: list[RetrievalCase], *, k: int = 3
 ) -> str:
@@ -603,6 +663,18 @@ def main() -> None:
     print(
         f"- tp/fp/fn:  {quant_report.true_positives}/"
         f"{quant_report.false_positives}/{quant_report.false_negatives}"
+    )
+
+    moa_report = evaluate_moa(load_moa_cases())
+    print("")
+    print("# Mechanism-of-Action Extraction Evaluation")
+    print(f"- precision: {moa_report.precision:.3f}")
+    print(f"- recall:    {moa_report.recall:.3f}")
+    print(f"- f1:        {moa_report.f1:.3f}")
+    print(
+        f"- tp/fp/fn:  {moa_report.true_positives}/"
+        f"{moa_report.false_positives}/{moa_report.false_negatives}"
+        " (incl. negative controls: a gene activated by a variant, a suppressor cue)"
     )
 
     from .extraction import LLMClaimExtractor, heuristic_responder

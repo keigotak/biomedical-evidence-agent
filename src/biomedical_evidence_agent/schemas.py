@@ -83,6 +83,26 @@ class QuantMeasurement:
 
 
 @dataclass(frozen=True)
+class MoaRelation:
+    """A grounded drug→target mechanism-of-action relation extracted from text.
+
+    ``mechanism`` is ``agonist`` / ``antagonist`` (the directional call the text
+    supports), attributed to a drug on its ontology-declared target so the
+    relation is grounded by concept identity rather than surface co-occurrence.
+    """
+
+    drug_id: str
+    drug_name: str
+    target_id: str
+    target_name: str
+    mechanism: str
+    source_id: str
+    quote: str
+    start: int
+    end: int
+
+
+@dataclass(frozen=True)
 class DossierCompound:
     """A modulator of a target, with any quantitative evidence against it."""
 
@@ -91,6 +111,7 @@ class DossierCompound:
     declared_target: bool
     measurements: tuple[QuantMeasurement, ...] = ()
     verdict: "Verdict | None" = None
+    mechanism: str = ""
 
 
 @dataclass(frozen=True)

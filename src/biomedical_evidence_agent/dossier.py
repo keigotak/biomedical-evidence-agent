@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import replace
 
 from .evidence import FACETS, _evidence_tier, assess_verdict, build_evidence_card
+from .moa import extract_moa, roll_up_mechanism
 from .ontology import Ontology
 from .quant import extract_measurements
 from .retrieval import ConceptAwareRetriever, tokenize
@@ -50,7 +51,19 @@ def build_target_dossier(
         )
     ]
 
+    moa_relations = [
+        relation
+        for record in matched
+        for relation in extract_moa(
+            record.abstract, source_id=record.id, ontology=ontology
+        )
+    ]
+
     compounds = _collect_compounds(target_concept.id, matched, measurements, ontology)
+    compounds = tuple(
+        replace(compound, mechanism=roll_up_mechanism(moa_relations, compound.concept_id))
+        for compound in compounds
+    )
     compounds = _grade_modulators(compounds, records, ontology)
     diseases = _collect_by_type(matched, ontology, "disease")
     angles = _collect_angles(matched)
@@ -239,6 +252,8 @@ def render_dossier(dossier: TargetDossier) -> str:
         lines.append("- None found in the corpus.")
     for compound in dossier.compounds:
         tag = " [declared target]" if compound.declared_target else ""
+        if compound.mechanism:
+            tag += f" [{compound.mechanism}]"
         potency = "; ".join(
             f"{m.parameter} {'' if m.relation == '=' else m.relation}{m.value:g} {m.unit}"
             f" [{m.source_id}@{m.start}-{m.end}]"

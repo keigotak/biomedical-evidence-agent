@@ -7,11 +7,13 @@ from pathlib import Path
 from biomedical_evidence_agent.evaluation import (
     evaluate_entity_linking,
     evaluate_dossier_verdicts,
+    evaluate_moa,
     evaluate_quant,
     evaluate_stance,
     evaluate_verdicts,
     load_dossier_cases,
     load_entity_cases,
+    load_moa_cases,
     load_quant_cases,
     load_retrieval_cases,
     load_stance_cases,
@@ -365,6 +367,52 @@ class TargetDossierTest(unittest.TestCase):
         self.assertEqual(by_name["osimertinib"].verdict.label, "well-supported")
         # Gefitinib must NOT inherit the EGFR-level support: no drug-grounded outcome.
         self.assertEqual(by_name["gefitinib"].verdict.label, "insufficient")
+
+    def test_dossier_rolls_up_modulator_mechanism(self) -> None:
+        egfr = {c.name: c for c in self._dossier("EGFR").compounds}
+        self.assertEqual(egfr["osimertinib"].mechanism, "antagonist")
+        # Non-oncology: an agonist is labeled from the same grounded extractor.
+        adrb2 = {c.name: c for c in self._dossier("beta-2 adrenergic receptor").compounds}
+        self.assertEqual(adrb2["salbutamol"].mechanism, "agonist")
+
+
+class MoaExtractionTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.ontology = Ontology.load(ROOT / "data" / "ontology.jsonl")
+
+    def _extract(self, text: str):
+        from biomedical_evidence_agent.moa import extract_moa
+
+        return extract_moa(text, ontology=self.ontology)
+
+    def test_inhibition_is_an_antagonist_relation(self) -> None:
+        rels = self._extract("Osimertinib inhibited mutant EGFR in the assay.")
+        self.assertEqual(len(rels), 1)
+        self.assertEqual(
+            (rels[0].drug_name, rels[0].target_name, rels[0].mechanism),
+            ("osimertinib", "EGFR", "antagonist"),
+        )
+
+    def test_activation_is_an_agonist_relation(self) -> None:
+        rels = self._extract("Salbutamol activated the beta-2 adrenergic receptor.")
+        self.assertEqual(
+            [(r.drug_name, r.mechanism) for r in rels], [("salbutamol", "agonist")]
+        )
+
+    def test_activated_gene_without_a_drug_yields_nothing(self) -> None:
+        # "EGFR activating variants" is the gene being activated, not a drug MoA.
+        self.assertEqual(self._extract("EGFR activating variants drive tumor growth."), [])
+
+    def test_drug_is_not_paired_with_a_non_target_gene(self) -> None:
+        # BRAF is present and a cue fires, but osimertinib does not target BRAF.
+        rels = self._extract("Osimertinib was tested while BRAF signaling was inhibited.")
+        self.assertEqual([(r.drug_name, r.target_name) for r in rels], [])
+
+    def test_moa_evaluation_matches_gold(self) -> None:
+        report = evaluate_moa(load_moa_cases(ROOT / "data" / "evaluation_moa.jsonl"))
+        self.assertEqual(report.f1, 1.0)
+        self.assertEqual(report.false_positives, 0)
 
 
 class VerdictTest(unittest.TestCase):

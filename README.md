@@ -19,6 +19,7 @@ The main workflow is claim-centered evidence synthesis: given a biomedical claim
 - Evidence-tier weighting by study design (`clinical` > `in_vivo` > `association` > `in_vitro` > `in_silico`) folded into confidence
 - Multi-angle evidence facets (mechanism, clinical, biomarker, method) and an "Evidence by Angle" view
 - Quantitative pharmacology extraction (IC50, EC50, Ki, Cmax, half-life, ...) with value, unit, and per-compound attribution for cross-compound comparison
+- Grounded mechanism-of-action extraction (agonist / antagonist) attributing a drug to its ontology-declared target, feeding target-dossier modulator labels
 - An optional model-backed (LLM) claim extractor with a citation-grounding guard that drops any quote not verbatim in its source — swappable for the deterministic default without weakening provenance
 - Optional PubMed title/abstract retrieval using public metadata only
 - An evaluation suite (entity linking, retrieval ablation, stance with guardrails, quantitative, extractor faithfulness)
@@ -58,7 +59,8 @@ PubMed mode uses public title/abstract metadata only. The default mode remains t
 │   ├── evaluation_stances.jsonl   # Stance + guardrail evaluation set
 │   ├── evaluation_quant.jsonl     # Quantitative-extraction evaluation set
 │   ├── evaluation_verdicts.jsonl  # Weighted-verdict evaluation set
-│   └── evaluation_dossiers.jsonl  # Dossier per-indication verdict set
+│   ├── evaluation_dossiers.jsonl  # Dossier per-indication verdict set
+│   └── evaluation_moa.jsonl       # Mechanism-of-action extraction set
 ├── docs/
 │   ├── architecture.md            # Workflow and component design
 │   └── example_output.md          # Example evidence cards
@@ -73,8 +75,9 @@ PubMed mode uses public title/abstract metadata only. The default mode remains t
 │       ├── extraction.py          # Optional model-backed claim extractor ([llm] extra)
 │       ├── dossier.py             # Target-centric evidence roll-up
 │       ├── quant.py               # Quantitative parameter extraction
+│       ├── moa.py                 # Mechanism-of-action relation extraction
 │       ├── pubmed.py              # Optional PubMed metadata retrieval
-│       ├── evaluation.py          # Entity-linking / retrieval / stance / quant evaluation
+│       ├── evaluation.py          # Entity-linking / retrieval / stance / quant / MoA / verdict evaluation
 │       └── schemas.py             # Dataclasses for records and cards
 └── tests/
     ├── test_pipeline.py
@@ -113,7 +116,7 @@ python -m biomedical_evidence_agent.cli --claim "..." --extractor llm
 # Target-centric dossier (local corpus): modulators, potencies, contexts, tiers
 python -m biomedical_evidence_agent.cli --target EGFR
 
-# Evaluation suite: entity linking, retrieval ablation, stance guardrails, quantitative, verdict, dossier indication verdict
+# Evaluation suite: entity linking, retrieval ablation, stance guardrails, quantitative, MoA, verdict, dossier indication verdict
 python -m biomedical_evidence_agent.evaluation
 
 python -m unittest discover -s tests
