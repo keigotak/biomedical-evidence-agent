@@ -118,7 +118,7 @@ python -m biomedical_evidence_agent.cli \
   --top-k 3 --report claim-audit --reviewer mock
 ```
 
-Add `--json` for the machine-readable report or `--reviewer claude` for a Claude-backed critique (needs the `llm` extra + `ANTHROPIC_API_KEY`).
+Add `--json` for the machine-readable report or `--reviewer claude` for a Claude-backed critique (needs the `llm` extra + `ANTHROPIC_API_KEY`). The Claude reviewer is real: on the BRAF claim it flags the supporting quote as hedged ("can produce tumor responses"), notes the conflict is about *durable* vs *initial* response, and points to the pivotal BRIM-3 trial as the next source — and every quote it cites is still re-verified verbatim against the source (its BRIM-3 suggestion carries no quote because it isn't in the corpus). See [`outputs/example_claim_audit_claude_reviewer.md`](outputs/example_claim_audit_claude_reviewer.md).
 
 **Not just toy data — audit real literature.** `--source pubmed` runs the same audit against live PubMed (public title/abstract metadata):
 
@@ -168,6 +168,7 @@ PYTHONPATH=src python experiments/reviewer_duel.py \
 │   ├── example_claim_audit.json   # Same report as JSON
 │   ├── example_claim_audit_il17a.md  # Non-oncology audit (IL-17A / fibrosis)
 │   ├── example_claim_audit_pubmed.md # Live-PubMed audit snapshot (real papers)
+│   ├── example_claim_audit_claude_reviewer.md # Real Claude reviewer critique
 │   └── example_reviewer_duel.md   # Advocate vs skeptic debate transcript
 ├── experiments/                   # Side modules; do not affect the main demo
 │   ├── hypothesis_stress_test.py  # Multi-angle claim stress test
