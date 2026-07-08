@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import asdict
 
-from .audit import what_would_change_my_mind
+from .audit import claim_concept_coverage, what_would_change_my_mind
 from .schemas import AuditReport, EvidenceCard, ReviewerCritique
 
 # The Claim Audit Report is the product surface of BioClaim Auditor: it reframes
@@ -84,6 +84,24 @@ def _append_evidence_map(lines: list[str], card: EvidenceCard) -> None:
     )
     lines.append(f"- Records retrieved: {len(card.retrieved)}")
 
+    coverage = claim_concept_coverage(card)
+    if coverage:
+        lines.append("- Coverage by claim entity:")
+        for entry in coverage:
+            total = entry["supports"] + entry["conflicts"] + entry["indirect"]
+            if total == 0:
+                detail = "⚠ no evidence addresses this entity"
+            else:
+                parts = []
+                if entry["supports"]:
+                    parts.append(f"{entry['supports']} supporting")
+                if entry["conflicts"]:
+                    parts.append(f"{entry['conflicts']} conflicting")
+                if entry["indirect"]:
+                    parts.append(f"{entry['indirect']} indirect")
+                detail = ", ".join(parts) + f" [{', '.join(entry['sources'])}]"
+            lines.append(f"  - {entry['name']} ({entry['type']}): {detail}")
+
 
 def _append_claim_group(
     lines: list[str], heading: str, card: EvidenceCard, stance: str
@@ -162,6 +180,7 @@ def audit_json(
             "verbatim": audit.citations_verbatim,
             "faithfulness": round(audit.citation_faithfulness, 3),
         },
+        "evidence_map": claim_concept_coverage(card),
         "flags": [asdict(f) for f in audit.findings],
         "reviewer_critique": (
             {

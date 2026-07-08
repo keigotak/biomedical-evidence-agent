@@ -10,6 +10,10 @@
 - Independent sources: 1 supporting, 1 conflicting
 - Sentences: 1 supporting · 1 conflicting · 1 indirect
 - Records retrieved: 3
+- Coverage by claim entity:
+  - IL17A (gene): 1 supporting, 1 conflicting, 1 indirect [toy-009, toy-010, toy-011]
+  - fibrosis (disease): 1 supporting, 1 conflicting [toy-009, toy-010]
+  - systemic sclerosis (disease): 1 supporting, 1 conflicting [toy-009, toy-010]
 
 ## Supporting Evidence
 - [high | clinical | toy-009@0-130] In this synthetic cohort, IL-17A blockade with secukinumab was associated with reduced fibrosis progression in systemic sclerosis.

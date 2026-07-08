@@ -3,7 +3,11 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from biomedical_evidence_agent.audit import audit_card, what_would_change_my_mind
+from biomedical_evidence_agent.audit import (
+    audit_card,
+    claim_concept_coverage,
+    what_would_change_my_mind,
+)
 from biomedical_evidence_agent.evidence import build_evidence_card
 from biomedical_evidence_agent.report import audit_json, render_claim_audit
 from biomedical_evidence_agent.retrieval import ConceptAwareRetriever, load_corpus
@@ -108,6 +112,27 @@ class AuditTest(unittest.TestCase):
         card = self._card("EGFR variants are associated with response to TKI in NSCLC.")
         wwcmm = what_would_change_my_mind(card, audit_card(card))
         self.assertTrue(any("contradicting" in item for item in wwcmm))
+
+    def test_evidence_map_covers_each_claim_entity(self) -> None:
+        card = self._card(
+            "BRAF V600E melanoma is associated with response to targeted inhibitor treatment."
+        )
+        coverage = {e["name"]: e for e in claim_concept_coverage(card)}
+        # BRAF and melanoma are both covered by a supporting and a conflicting source.
+        self.assertEqual(coverage["BRAF"]["supports"], 1)
+        self.assertEqual(coverage["BRAF"]["conflicts"], 1)
+        self.assertIn("melanoma", coverage)
+
+    def test_uncovered_claim_entity_raises_a_coverage_gap(self) -> None:
+        # The claim names colorectal cancer, but no retrieved sentence addresses it.
+        card = self._card(
+            "TP53 mutation definitively cures colorectal cancer with salbutamol."
+        )
+        audit = audit_card(card)
+        gap_messages = [
+            f.message for f in audit.findings if f.category == "retrieval-gap"
+        ]
+        self.assertTrue(any("colorectal cancer" in m for m in gap_messages))
 
 
 class ReviewerTest(unittest.TestCase):

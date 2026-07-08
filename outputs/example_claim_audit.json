@@ -62,6 +62,44 @@
     "verbatim": 2,
     "faithfulness": 1.0
   },
+  "evidence_map": [
+    {
+      "concept_id": "BEA:gene:braf",
+      "name": "BRAF",
+      "type": "gene",
+      "supports": 1,
+      "conflicts": 1,
+      "indirect": 0,
+      "sources": [
+        "toy-002",
+        "toy-006"
+      ]
+    },
+    {
+      "concept_id": "BEA:disease:melanoma",
+      "name": "melanoma",
+      "type": "disease",
+      "supports": 1,
+      "conflicts": 1,
+      "indirect": 0,
+      "sources": [
+        "toy-002",
+        "toy-006"
+      ]
+    },
+    {
+      "concept_id": "BEA:drug_class:targeted_therapy",
+      "name": "targeted therapy",
+      "type": "drug_class",
+      "supports": 1,
+      "conflicts": 1,
+      "indirect": 0,
+      "sources": [
+        "toy-002",
+        "toy-006"
+      ]
+    }
+  ],
   "flags": [
     {
       "category": "contradiction",

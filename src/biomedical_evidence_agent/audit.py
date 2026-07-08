@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 
+from .ontology import Ontology
 from .schemas import AuditFinding, AuditReport, EvidenceCard
 
 # Assertive language that promises more than evidence usually earns. Presence of
@@ -36,15 +37,17 @@ _PRECLINICAL_TIERS = frozenset({"in_vitro", "in_silico", "preclinical"})
 _WORD_RE = re.compile(r"[a-z0-9]+")
 
 
-def audit_card(card: EvidenceCard) -> AuditReport:
+def audit_card(card: EvidenceCard, *, ontology: Ontology | None = None) -> AuditReport:
     """Run the rule-based audit over a finished evidence card.
 
-    Four checks, each traceable to evidence: citation faithfulness (quotes are
+    Checks, each traceable to evidence: citation faithfulness (quotes are
     verbatim spans of their source), overclaim (assertive claim language not
     backed by the verdict, or a well-supported verdict resting only on
-    preclinical tiers), contradiction (independent sources on both sides), and
-    retrieval gaps (no direct or no clinical-tier evidence). The audit never
-    invents support — it only flags where the card outruns its evidence.
+    preclinical tiers), contradiction (independent sources on both sides),
+    retrieval gaps (no direct or no clinical-tier evidence), and per-entity
+    coverage gaps (a normalized entity named in the claim that no retrieved
+    sentence addresses). The audit never invents support — it only flags where
+    the card outruns its evidence.
     """
 
     findings: list[AuditFinding] = []
@@ -70,12 +73,68 @@ def audit_card(card: EvidenceCard) -> AuditReport:
     findings.extend(_overclaim_findings(card, on_claim))
     findings.extend(_contradiction_findings(card))
     findings.extend(_retrieval_gap_findings(card, on_claim))
+    findings.extend(_coverage_gap_findings(card, ontology))
 
     return AuditReport(
         findings=tuple(findings),
         citations_checked=checked,
         citations_verbatim=verbatim,
     )
+
+
+def claim_concept_coverage(
+    card: EvidenceCard, ontology: Ontology | None = None
+) -> list[dict]:
+    """Map each normalized entity in the claim to the evidence that addresses it.
+
+    Decomposes the claim into its ontology concepts (gene / drug / disease) and,
+    for each, counts how many extracted sentences mention it and with what
+    stance. This exposes which parts of a claim rest on evidence and which are
+    merely asserted — the entity-level view behind the Evidence Map.
+    """
+
+    ontology = ontology or Ontology.load()
+    claim_text = card.claim or card.query or ""
+    coverage: list[dict] = []
+    for concept_id in ontology.concept_ids(claim_text):
+        concept = ontology.concepts[concept_id]
+        counts = {"supports": 0, "conflicts": 0, "insufficient": 0}
+        sources: set[str] = set()
+        for claim in card.claims:
+            if concept_id in ontology.concept_ids(claim.text):
+                counts[claim.stance] = counts.get(claim.stance, 0) + 1
+                sources.add(claim.source_id)
+        coverage.append(
+            {
+                "concept_id": concept_id,
+                "name": concept.canonical,
+                "type": concept.type,
+                "supports": counts["supports"],
+                "conflicts": counts["conflicts"],
+                "indirect": counts["insufficient"],
+                "sources": sorted(sources),
+            }
+        )
+    return coverage
+
+
+def _coverage_gap_findings(
+    card: EvidenceCard, ontology: Ontology | None
+) -> list[AuditFinding]:
+    findings: list[AuditFinding] = []
+    for entry in claim_concept_coverage(card, ontology):
+        if entry["supports"] + entry["conflicts"] + entry["indirect"] == 0:
+            findings.append(
+                AuditFinding(
+                    category="retrieval-gap",
+                    severity="warn",
+                    message=(
+                        f"No retrieved sentence addresses '{entry['name']}', an "
+                        f"entity named in the claim ({entry['type']})."
+                    ),
+                )
+            )
+    return findings
 
 
 def _overclaim_findings(card: EvidenceCard, on_claim) -> list[AuditFinding]:

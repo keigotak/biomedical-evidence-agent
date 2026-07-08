@@ -27,6 +27,11 @@ Auditor instead forces five things into the open:
    only on preclinical tiers is flagged too.
 4. **Contradictions and retrieval gaps** — conflicting independent sources, no
    direct evidence, or no clinical-tier evidence are surfaced as explicit flags.
+   The **Evidence Map** goes finer: it decomposes the claim into its normalized
+   entities and shows which are supported, contested, or *unaddressed by any
+   retrieved sentence* — so a claim that names an entity nothing speaks to (e.g.
+   "…cures colorectal cancer with salbutamol" where no source addresses
+   colorectal cancer) is flagged, not glossed.
 5. **What would change my mind** — concrete next evidence keyed to the current
    verdict and gaps, not generic advice.
 

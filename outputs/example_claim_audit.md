@@ -10,6 +10,10 @@
 - Independent sources: 1 supporting, 1 conflicting
 - Sentences: 1 supporting · 1 conflicting · 2 indirect
 - Records retrieved: 3
+- Coverage by claim entity:
+  - BRAF (gene): 1 supporting, 1 conflicting [toy-002, toy-006]
+  - melanoma (disease): 1 supporting, 1 conflicting [toy-002, toy-006]
+  - targeted therapy (drug_class): 1 supporting, 1 conflicting [toy-002, toy-006]
 
 ## Supporting Evidence
 - [high | clinical | toy-002@0-116] This sample record describes BRAF V600E melanoma as a setting where targeted inhibitors can produce tumor responses.
