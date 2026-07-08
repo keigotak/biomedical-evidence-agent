@@ -461,7 +461,7 @@ class MoaExtractionTest(unittest.TestCase):
         # future fix to a documented limitation forces this test to be updated.
         results = evaluate_stress(ROOT / "data" / "evaluation_stress.jsonl")
         handled = {r.id for r in results if r.handled}
-        self.assertEqual(handled, {"ss-001", "ss-002", "ss-003"})
+        self.assertEqual(handled, {"ss-001", "ss-002", "ss-003", "ss-004"})
         self.assertEqual(len(results), 5)
 
 
@@ -489,6 +489,17 @@ class QuantRobustnessTest(unittest.TestCase):
             self._params("osimertinib inhibited EGFR with an IC50 of 12 nM"),
             [("IC50", 12.0, "nM")],
         )
+
+    def test_numeric_range_takes_the_lower_bound(self) -> None:
+        # "IC50 of 10-20 nM" must not silently record only the upper number.
+        from biomedical_evidence_agent.quant import extract_measurements
+        got = [
+            (m.parameter, m.relation, m.value, m.unit)
+            for m in extract_measurements(
+                "The compound showed an IC50 of 10-20 nM.", ontology=self.ontology
+            )
+        ]
+        self.assertEqual(got, [("IC50", "=", 10.0, "nM")])
 
 
 class VerdictTest(unittest.TestCase):

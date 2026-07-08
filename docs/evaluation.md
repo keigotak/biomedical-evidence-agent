@@ -44,7 +44,7 @@ citation leaks). A bare "1.000" on the small extraction golds is worth much less
 ## Stress set — the edges, reported honestly
 
 `data/evaluation_stress.jsonl` holds deliberately hard cases and is **not expected
-to be perfect**. It currently scores **3/5 handled**; the misses are documented
+to be perfect**. It currently scores **4/5 handled**; the misses are documented
 limitations, not regressions, and the state is pinned by a test so a future fix
 has to update it:
 
@@ -53,7 +53,7 @@ has to update it:
 | `ss-001` negation before a value | ✅ | abstains |
 | `ss-002` distractor drug in the sentence | ✅ | not mis-paired |
 | `ss-003` hyphenated morphology (`EGFR-mutated`) | ✅ | right boundary now allows a trailing hyphen (`non-EGFR` still blocked) |
-| `ss-004` numeric range (`10–20 nM`) | ❌ | the window grabs only the upper bound |
+| `ss-004` numeric range (`10–20 nM`) | ✅ | takes the lower (cited) bound |
 | `ss-005` cue collision (`suppressed … activation`) | ❌ | opposing MoA cues co-occur, so it abstains |
 
 These are the honest next targets. Each is a concrete, reproducible failure with a

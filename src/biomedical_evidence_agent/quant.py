@@ -31,6 +31,11 @@ _UNIT_ALT = (
 _VALUE_RE = re.compile(
     r"(?P<rel>[<>=≈~]|≤|≥)?\s*(?P<val>\d+(?:\.\d+)?)\s*(?P<unit>" + _UNIT_ALT + r")(?![A-Za-z])"
 )
+# A numeric range ("10-20 nM"): capture the lower (usually the cited/most-potent)
+# bound so a plain value search doesn't silently grab only the upper number.
+_RANGE_RE = re.compile(
+    r"(?P<lo>\d+(?:\.\d+)?)\s*[-–—]\s*\d+(?:\.\d+)?\s*(?P<unit>" + _UNIT_ALT + r")(?![A-Za-z])"
+)
 _UNIT_CANON = {
     "uM": "µM",
     "μM": "µM",
@@ -100,10 +105,17 @@ def extract_measurements(
                 value_match = _VALUE_RE.search(window)
                 if not value_match:
                     continue
+                # A range starting at/before the plain match wins: take its lower bound.
+                range_match = _RANGE_RE.search(window)
+                if range_match and range_match.start() <= value_match.start():
+                    rel, val = "=", range_match.group("lo")
+                    unit, m_start, m_end = range_match.group("unit"), range_match.start(), range_match.end()
+                else:
+                    rel, val = value_match.group("rel") or "=", value_match.group("val")
+                    unit, m_start, m_end = value_match.group("unit"), value_match.start(), value_match.end()
                 # Skip if the value is negated before it is stated.
-                if set(_WORD_RE.findall(window[: value_match.start()].lower())) & _NEGATION:
+                if set(_WORD_RE.findall(window[:m_start].lower())) & _NEGATION:
                     continue
-                unit = value_match.group("unit")
                 canonical_unit = _UNIT_CANON.get(unit, unit)
                 allowed = _ALLOWED_UNITS.get(name)
                 if allowed is not None and canonical_unit not in allowed:
@@ -112,17 +124,17 @@ def extract_measurements(
                 measurements.append(
                     QuantMeasurement(
                         parameter=name,
-                        relation=value_match.group("rel") or "=",
-                        value=float(value_match.group("val")),
-                        unit=_UNIT_CANON.get(unit, unit),
+                        relation=rel,
+                        value=float(val),
+                        unit=canonical_unit,
                         source_id=source_id,
                         primary_entity=primary,
                         entity_ids=entity_ids,
                         start=sentence_offset + param_match.start(),
                         end=sentence_offset
                         + param_match.end()
-                        + value_match.end(),
-                        raw=f"{param_match.group()} {value_match.group().strip()}",
+                        + m_end,
+                        raw=f"{param_match.group()} {window[m_start:m_end].strip()}",
                     )
                 )
     return measurements
