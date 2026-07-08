@@ -85,7 +85,12 @@ Add `--json` for the machine-readable report, `--reviewer claude` for a Claude-b
 **Experiments** (side modules, do not affect the main demo — see [`experiments/`](experiments/)):
 
 ```bash
+# Stress-test a claim from several research angles
 PYTHONPATH=src python experiments/hypothesis_stress_test.py \
+  --claim "BRAF V600E melanoma is associated with response to targeted inhibitor treatment."
+
+# Advocate vs skeptic debate the claim; a judge rules (grounded citations only)
+PYTHONPATH=src python experiments/reviewer_duel.py \
   --claim "BRAF V600E melanoma is associated with response to targeted inhibitor treatment."
 ```
 
@@ -112,7 +117,8 @@ PYTHONPATH=src python experiments/hypothesis_stress_test.py \
 │   ├── example_claim_audit.md     # Saved Claim Audit Report (demo artifact)
 │   └── example_claim_audit.json   # Same report as JSON
 ├── experiments/                   # Side modules; do not affect the main demo
-│   └── hypothesis_stress_test.py  # Multi-angle claim stress test
+│   ├── hypothesis_stress_test.py  # Multi-angle claim stress test
+│   └── reviewer_duel.py           # Advocate vs skeptic debate + judge
 ├── app.py                         # Streamlit UI (BioClaim Auditor)
 ├── Dockerfile                     # Containerized UI ([ui] extra only)
 ├── docker-compose.yml             # `docker compose up` -> http://localhost:8501

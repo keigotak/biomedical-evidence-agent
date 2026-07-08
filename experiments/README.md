@@ -21,9 +21,17 @@ PYTHONPATH=src python experiments/hypothesis_stress_test.py \
   angle-focused query, so you can see where a claim is strong and where it is
   only asserted. Offline; no API key required.
 
+- **`reviewer_duel.py`** — an advocate and a skeptic argue the claim, and a judge
+  rules. The advocate marshals supporting evidence, the skeptic marshals
+  conflicts / overclaims / gaps, and the judge weighs both against the
+  tier-weighted verdict. Every quote either side cites is re-checked against its
+  source and dropped if it is not verbatim, so neither debater can win on a
+  fabricated citation. Offline mock agents by default; the same shapes accept a
+  Claude-backed responder.
+
 ## Ideas parked here (not yet built)
 
-- **Reviewer duel** — two Claude reviewers argue the claim (advocate vs skeptic),
-  and a judge scores which evidence survives.
 - **Evidence map UI** — a visual map of which sentence supports which part of the
   claim (belongs in the Streamlit app, not here).
+- **Claude-backed duel** — wire `reviewer_duel` agents to real Anthropic
+  responders (advocate/skeptic/judge system prompts) behind the `llm` extra.
