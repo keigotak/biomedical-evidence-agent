@@ -10,6 +10,7 @@ from biomedical_evidence_agent.evaluation import (
     evaluate_moa,
     evaluate_quant,
     evaluate_stance,
+    evaluate_stress,
     evaluate_verdicts,
     load_dossier_cases,
     load_entity_cases,
@@ -451,6 +452,14 @@ class MoaExtractionTest(unittest.TestCase):
         self.assertEqual(report.f1, 1.0)
         self.assertEqual(report.false_positives, 0)
 
+    def test_stress_set_state_is_pinned(self) -> None:
+        # The stress set is intentionally imperfect; pin the honest state so a
+        # future fix to a documented limitation forces this test to be updated.
+        results = evaluate_stress(ROOT / "data" / "evaluation_stress.jsonl")
+        handled = {r.id for r in results if r.handled}
+        self.assertEqual(handled, {"ss-001", "ss-002"})
+        self.assertEqual(len(results), 5)
+
 
 class QuantRobustnessTest(unittest.TestCase):
     @classmethod
@@ -511,6 +520,17 @@ class VerdictTest(unittest.TestCase):
         verdict = assess_verdict([self._claim("s1", "supports", "clinical")])
         self.assertEqual(verdict.label, "well-supported")
         self.assertEqual(verdict.strength, 1.0)
+
+    def test_lean_but_below_threshold_is_mixed(self) -> None:
+        # Two supporting vs one conflicting source, same tier: net +0.33, minority
+        # share 0.33 < CONTESTED_SHARE and balance < WELL_SUPPORTED_BALANCE -> mixed
+        # (exercises the middle branch that no eval-gold case reaches).
+        verdict = assess_verdict([
+            self._claim("s1", "supports", "clinical"),
+            self._claim("s2", "supports", "clinical"),
+            self._claim("c1", "conflicts", "clinical"),
+        ])
+        self.assertEqual(verdict.label, "mixed")
 
     def test_in_silico_only_is_insufficient(self) -> None:
         verdict = assess_verdict([self._claim("s1", "supports", "in_silico")])

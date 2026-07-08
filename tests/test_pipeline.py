@@ -119,17 +119,27 @@ class PipelineTest(unittest.TestCase):
         rendered = render_markdown(card)
         self.assertIn("## Evidence by Angle", rendered)
 
-    def test_render_caps_evidence_sentences_per_source_and_stance(self) -> None:
+    def test_caps_evidence_sentences_per_source_and_stance(self) -> None:
+        from collections import Counter
+
+        from biomedical_evidence_agent.evidence import (
+            MAX_SENTENCES_PER_SOURCE_STANCE,
+            _cap_per_source,
+        )
+
         records = load_corpus(ROOT / "data" / "sample_corpus.jsonl")
         claim = "BRAF melanoma is associated with response to targeted inhibitor treatment."
         results = LexicalRetriever(records).search(claim, top_k=4)
         card = build_evidence_card(query=claim, retrieved=results, claim=claim)
-        # The cap applies to the stance sections; the later "Evidence by Angle"
-        # view intentionally re-lists the same sentences grouped by facet.
-        stance_sections = render_markdown(card).split("## Evidence by Angle")[0]
-
-        self.assertLessEqual(stance_sections.count("toy-002@"), 2)
-        self.assertLessEqual(stance_sections.count("toy-006@"), 2)
+        # Assert the cap on the structured claims (what the renderer applies), not
+        # on a substring count of the rendered markdown.
+        for stance in ("supports", "conflicts", "insufficient"):
+            group = [c for c in card.claims if c.stance == stance]
+            counts = Counter(c.source_id for c in _cap_per_source(group))
+            self.assertTrue(
+                all(n <= MAX_SENTENCES_PER_SOURCE_STANCE for n in counts.values()),
+                f"{stance}: {counts}",
+            )
 
     def test_workflow_claim_can_be_supporting_evidence(self) -> None:
         records = load_corpus(ROOT / "data" / "sample_corpus.jsonl")

@@ -66,8 +66,17 @@ class CompareClaimsTest(unittest.TestCase):
             corpus=self.CORPUS,
         )
         self.assertIn("| Claim | Verdict |", table)
-        self.assertIn("well-supported", table)   # EGFR
-        self.assertIn("overclaim", table)          # TP53 flag
+        # Bind each verdict to ITS OWN row, not just "appears somewhere in the table".
+        rows = {
+            line.split("|")[1].strip(): line
+            for line in table.splitlines()
+            if line.startswith("| ") and "Verdict" not in line and "---" not in line
+        }
+        egfr = next(v for k, v in rows.items() if k.startswith("EGFR"))
+        tp53 = next(v for k, v in rows.items() if k.startswith("TP53"))
+        self.assertIn("well-supported", egfr)
+        self.assertNotIn("well-supported", tp53)
+        self.assertIn("overclaim", tp53)
 
 
 if __name__ == "__main__":

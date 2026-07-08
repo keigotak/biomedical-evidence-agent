@@ -169,6 +169,7 @@ PYTHONPATH=src python experiments/compare_claims.py
 ├── docs/
 │   ├── architecture.md            # Workflow and component design
 │   ├── differentiation.md         # Why this is a claim auditor, not a search tool
+│   ├── evaluation.md              # Eval design, n per stream, honest caveats + stress set
 │   ├── hackathon_demo.md          # 2-minute demo script
 │   ├── hero.svg                   # README hero (rendered from real output)
 │   └── example_output.md          # Example evidence cards
@@ -246,7 +247,10 @@ python -m biomedical_evidence_agent.cli --claim "..." --extractor llm
 # Target-centric dossier (local corpus): modulators, potencies, contexts, tiers
 python -m biomedical_evidence_agent.cli --target EGFR
 
-# Evaluation suite: entity linking, retrieval ablation, stance guardrails, quantitative, MoA, verdict, dossier indication verdict
+# Evaluation suite (see docs/evaluation.md for design, n per stream, and honest
+# caveats): entity linking, retrieval ablation, stance guardrails, quantitative,
+# MoA, verdict, dossier verdict, extractor ablation, and a stress set of
+# deliberately hard cases reported at its true 2/5 (not curated to perfect).
 python -m biomedical_evidence_agent.evaluation
 
 python -m unittest discover -s tests

@@ -45,6 +45,10 @@ def default_moa_eval_path() -> Path:
     return Path(__file__).resolve().parents[2] / "data" / "evaluation_moa.jsonl"
 
 
+def default_stress_eval_path() -> Path:
+    return Path(__file__).resolve().parents[2] / "data" / "evaluation_stress.jsonl"
+
+
 @dataclass(frozen=True)
 class EntityLinkingCase:
     id: str
@@ -317,7 +321,7 @@ def evaluate_stance(
 class QuantCase:
     id: str
     text: str
-    expected: tuple[tuple[str, float, str], ...]
+    expected: tuple[tuple[str, str, float, str], ...]  # (parameter, relation, value, unit)
 
 
 @dataclass(frozen=True)
@@ -339,7 +343,7 @@ def load_quant_cases(path: Path | None = None) -> list[QuantCase]:
                 continue
             item = json.loads(line)
             expected = tuple(
-                (row["parameter"], float(row["value"]), row["unit"])
+                (row["parameter"], row.get("relation", "="), float(row["value"]), row["unit"])
                 for row in item.get("expected", [])
             )
             cases.append(QuantCase(id=item["id"], text=item["text"], expected=expected))
@@ -349,13 +353,17 @@ def load_quant_cases(path: Path | None = None) -> list[QuantCase]:
 def evaluate_quant(
     cases: list[QuantCase], *, ontology: Ontology | None = None
 ) -> QuantReport:
-    """Precision/recall of quantitative extraction on (parameter, value, unit)."""
+    """Precision/recall of quantitative extraction on (parameter, relation, value, unit).
+
+    Scoring the relation means `IC50 <5 nM` (potent) and `IC50 =5 nM` no longer
+    count as the same extraction — direction is graded, not just magnitude.
+    """
 
     ontology = ontology or Ontology.load()
     tp = fp = fn = 0
     for case in cases:
         predicted = {
-            (m.parameter, m.value, m.unit)
+            (m.parameter, m.relation, m.value, m.unit)
             for m in extract_measurements(case.text, ontology=ontology)
         }
         expected = set(case.expected)
@@ -428,6 +436,66 @@ def evaluate_moa(cases: list[MoaCase], *, ontology: Ontology | None = None) -> Q
         false_positives=fp,
         false_negatives=fn,
     )
+
+
+@dataclass(frozen=True)
+class StressResult:
+    id: str
+    kind: str
+    handled: bool
+    expected: object
+    predicted: object
+    note: str
+
+
+def evaluate_stress(path: Path | None = None, *, ontology: Ontology | None = None) -> list[StressResult]:
+    """Run a set of deliberately hard cases and report which are handled.
+
+    Unlike the capability gold, this set is NOT expected to be perfect — it holds
+    adversarial and known-limitation cases (hyphenated morphology, numeric
+    ranges, cue collisions) so the evaluation is honest about the edges. Each case
+    declares its own `kind` (entity / quant / moa) and expected output; a case is
+    'handled' only on an exact match.
+    """
+
+    ontology = ontology or Ontology.load()
+    path = path or default_stress_eval_path()
+    results: list[StressResult] = []
+    with path.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            if not line.strip():
+                continue
+            item = json.loads(line)
+            kind, text = item["kind"], item["text"]
+            if kind == "entity":
+                predicted = sorted(
+                    {ontology.concepts[cid].canonical for cid in ontology.concept_ids(text)}
+                )
+                expected = sorted(item["expected"])
+                handled = set(expected).issubset(set(predicted))
+            elif kind == "quant":
+                predicted = sorted(
+                    (m.parameter, m.relation, m.value, m.unit)
+                    for m in extract_measurements(text, ontology=ontology)
+                )
+                expected = sorted(
+                    (r[0], r[1], float(r[2]), r[3]) if len(r) == 4 else (r[0], "=", float(r[1]), r[2])
+                    for r in item["expected"]
+                )
+                handled = predicted == expected
+            elif kind == "moa":
+                predicted = sorted(
+                    (r.drug_name, r.target_name, r.mechanism)
+                    for r in extract_moa(text, ontology=ontology)
+                )
+                expected = sorted(tuple(r) for r in item["expected"])
+                handled = predicted == expected
+            else:  # pragma: no cover - guards a malformed gold file
+                continue
+            results.append(
+                StressResult(item["id"], kind, handled, expected, predicted, item.get("note", ""))
+            )
+    return results
 
 
 def _embedding_ablation_line(
@@ -733,6 +801,15 @@ def main() -> None:
     for case in dossier_report.per_case:
         mark = "ok" if case["expected"] == case["predicted"] else "MISS"
         print(f"- {case['id']}: expected={case['expected']} predicted={case['predicted']} [{mark}]")
+
+    stress = evaluate_stress()
+    handled = sum(1 for r in stress if r.handled)
+    print("")
+    print("# Stress Set (deliberately hard; NOT expected to be perfect)")
+    print(f"- handled: {handled}/{len(stress)} — the misses are documented limitations, not regressions")
+    for r in stress:
+        mark = "ok" if r.handled else "LIMIT"
+        print(f"- {r.id} ({r.kind}) [{mark}]: {r.note}")
 
 
 if __name__ == "__main__":
