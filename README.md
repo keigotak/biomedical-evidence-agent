@@ -104,11 +104,17 @@ python -m biomedical_evidence_agent.cli \
   --top-k 3 --report claim-audit --reviewer mock
 ```
 
-It generalizes beyond oncology — the same audit works on an immunology / fibrosis claim, which comes out `contested` (one supporting, one conflicting clinical source):
+It generalizes across therapeutic areas — the same audit runs on oncology, immunology / fibrosis, and neurology claims. Both non-oncology examples come out `contested` (one supporting, one conflicting clinical source):
 
 ```bash
+# immunology / fibrosis
 python -m biomedical_evidence_agent.cli \
   --claim "IL-17A blockade may reduce fibrosis progression in systemic sclerosis." \
+  --top-k 3 --report claim-audit --reviewer mock
+
+# neurology
+python -m biomedical_evidence_agent.cli \
+  --claim "TREM2 is associated with Alzheimer's disease progression." \
   --top-k 3 --report claim-audit --reviewer mock
 ```
 

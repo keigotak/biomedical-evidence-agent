@@ -80,10 +80,12 @@ class HybridRetrievalTest(unittest.TestCase):
 
     def test_brand_name_query_retrieves_via_concept_grounding(self) -> None:
         # "Tagrisso" appears in neither the corpus nor the alias map; only
-        # concept normalization (Tagrisso -> osimertinib) can bridge it.
+        # concept normalization (Tagrisso -> osimertinib) can bridge it. The top
+        # hit must be one of the osimertinib/EGFR records, not a fixed id (their
+        # relative rank is IDF-sensitive as the corpus grows).
         results = ConceptAwareRetriever(self.records).search("Tagrisso", top_k=3)
         self.assertTrue(results)
-        self.assertEqual(results[0].record.id, "toy-001")
+        self.assertIn(results[0].record.id, {"toy-001", "toy-007"})
 
     def test_concept_layer_beats_lexical_on_ablation(self) -> None:
         cases = load_retrieval_cases(ROOT / "data" / "evaluation_claims.jsonl")

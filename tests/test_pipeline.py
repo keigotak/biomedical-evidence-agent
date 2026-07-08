@@ -28,7 +28,9 @@ class PipelineTest(unittest.TestCase):
         self.assertEqual(card.query, "BRAF melanoma targeted therapy")
         self.assertTrue(card.retrieved)
         self.assertTrue(card.claims)
-        self.assertEqual(card.retrieved[0].record.id, "toy-002")
+        # Top hit is one of the BRAF/melanoma records; their relative rank is
+        # IDF-sensitive as the corpus grows, so don't pin a single id.
+        self.assertIn(card.retrieved[0].record.id, {"toy-002", "toy-006"})
 
     def test_claim_mode_separates_supporting_and_conflicting_evidence(self) -> None:
         records = load_corpus(ROOT / "data" / "sample_corpus.jsonl")

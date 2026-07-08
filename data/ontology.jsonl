@@ -26,3 +26,5 @@
 {"id": "BEA:drug:secukinumab", "type": "drug", "canonical": "secukinumab", "surface_forms": ["secukinumab", "Cosentyx", "AIN457"], "xrefs": {"chembl": "CHEMBL1743007", "mesh": "D000077548"}, "targets": ["BEA:gene:il17a"]}
 {"id": "BEA:disease:systemic_sclerosis", "type": "disease", "canonical": "systemic sclerosis", "surface_forms": ["systemic sclerosis", "scleroderma", "SSc"], "xrefs": {"mesh": "D012595"}}
 {"id": "BEA:disease:fibrosis", "type": "disease", "canonical": "fibrosis", "surface_forms": ["fibrosis", "tissue fibrosis"], "xrefs": {"mesh": "D005355"}}
+{"id": "BEA:gene:trem2", "type": "gene", "canonical": "TREM2", "surface_forms": ["TREM2", "triggering receptor expressed on myeloid cells 2"], "xrefs": {"uniprot": "Q9NZC2", "hgnc": "HGNC:17761"}}
+{"id": "BEA:disease:alzheimer_disease", "type": "disease", "canonical": "Alzheimer's disease", "surface_forms": ["Alzheimer's disease", "Alzheimer disease", "Alzheimers disease", "AD"], "xrefs": {"mesh": "D000544"}}

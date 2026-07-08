@@ -60,7 +60,9 @@ python -m biomedical_evidence_agent.cli \
 
 "Same tool, a totally different area — immunology and fibrosis. It finds one
 supporting and one conflicting clinical source and calls it **contested**. The
-grounding backbone (concept ids, verbatim citations) is domain-agnostic."
+grounding backbone (concept ids, verbatim citations) is domain-agnostic — swap in
+`TREM2 is associated with Alzheimer's disease progression.` and neurology audits
+the same way. Three therapeutic areas, one auditor."
 
 ## The close (15s)
 
