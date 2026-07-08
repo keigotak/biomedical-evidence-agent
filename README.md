@@ -174,7 +174,8 @@ PYTHONPATH=src python experiments/compare_claims.py
 │   ├── hero.svg                   # README hero (rendered from real output)
 │   └── example_output.md          # Example evidence cards
 ├── scripts/
-│   └── render_hero.py             # Regenerates docs/hero.svg from a real audit
+│   ├── render_hero.py             # Regenerates docs/hero.svg from a real audit
+│   └── eval_llm_ablation.py       # Extractor ablation on the real Claude backend
 ├── outputs/
 │   ├── example_claim_audit.md     # Saved Claim Audit Report (BRAF, demo artifact)
 │   ├── example_claim_audit.json   # Same report as JSON
@@ -184,7 +185,8 @@ PYTHONPATH=src python experiments/compare_claims.py
 │   ├── example_reviewer_duel.md   # Advocate vs skeptic debate transcript (mock)
 │   ├── example_reviewer_duel_claude.md # Same debate on real Claude (3 agents)
 │   ├── example_evidence_map.html  # Visual per-entity Evidence Map (open in a browser)
-│   └── example_claim_comparison.md # Several claims audited side by side
+│   ├── example_claim_comparison.md # Several claims audited side by side
+│   └── example_extractor_ablation.md # Guard ablation on real Claude (snapshot)
 ├── experiments/                   # Side modules; do not affect the main demo
 │   ├── hypothesis_stress_test.py  # Multi-angle claim stress test
 │   ├── compare_claims.py          # Audit several claims into one comparison table

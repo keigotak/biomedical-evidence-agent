@@ -41,6 +41,23 @@ citation leaks). A bare "1.000" on the small extraction golds is worth much less
   negated MoA cue) that a naive extractor gets wrong — the pipeline now abstains
   on all three.
 
+## LLM extractor ablation — on the real model
+
+The bundled extractor ablation runs on an offline mock. `scripts/eval_llm_ablation.py`
+runs the same three paths on **real Claude** (`claude-opus-4-8`, reads
+`ANTHROPIC_API_KEY`, ~15 memoized calls) — snapshot in
+[`outputs/example_extractor_ablation.md`](../outputs/example_extractor_ablation.md).
+The two ablations tell *different* halves of one story:
+
+- **Weak extractor (mock):** unguarded macro-F1 0.444 with 3/3 guardrail leaks →
+  the hybrid guard rescues it to 1.000 / 0 leaks. The guard is decisive.
+- **Strong extractor (Claude):** already faithful (25/25 verbatim quotes) and
+  leak-free *without* the guard, so guarded == unguarded — the guard is a
+  transparent no-op here, which is exactly what a safety net should be.
+
+The credible claim is that the guard rescues a naive extractor and stays out of a
+careful one's way — not "the guard makes everything 1.000."
+
 ## Stress set — the edges, reported honestly
 
 `data/evaluation_stress.jsonl` holds deliberately hard cases and is **not expected
