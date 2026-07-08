@@ -5,11 +5,32 @@ sciences researchers. Repo: `biomedical-evidence-agent`.
 
 ## The hook (15s)
 
-"Ask any LLM 'does BRAF V600E melanoma respond to targeted inhibitors?' and you
-get a confident paragraph. But is it *true*, and how would you check? BioClaim
-Auditor doesn't answer the question — it audits the claim."
+"I'm a drug-discovery researcher — I read biomedical papers all day. Ask any LLM
+'does BRAF V600E melanoma respond to targeted inhibitors?' and you get a confident
+paragraph. But is it *true*, and how would you check? So I built BioClaim Auditor.
+It doesn't answer the question — it audits the claim."
 
-## Demo 1 — a contested claim (40s)
+## Demo 0 — the real test: live PubMed (40s)  ← lead with this
+
+```bash
+python -m biomedical_evidence_agent.cli --source pubmed \
+  --claim "Vitamin D supplementation reduces the risk of cancer." \
+  --top-k 6 --report claim-audit --extractor llm --reviewer claude
+```
+
+(Or open `outputs/example_claim_audit_vitamin_d_pubmed.md` — a saved snapshot.)
+
+Point at:
+- **Audit Verdict: contradicted** — a claim many people believe, and the real
+  literature pushes back.
+- The **VITAL trial**, quoted **verbatim** (`HR 0.96, 95% CI 0.88–1.06; P=0.47`).
+- **Reviewer Critique (Claude)** — catches a nuance the rules missed: cancer
+  *incidence* (null) vs *mortality* (possible benefit), and names the **D-Health
+  trial** next. Every quote re-grounded.
+
+"Real PubMed, real trials, Claude reading messy abstracts — not toy data."
+
+## Demo 1 — a contested claim, mechanics up close (30s)
 
 ```bash
 python -m biomedical_evidence_agent.cli \

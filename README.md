@@ -4,6 +4,8 @@
 
 **BioClaim Auditor is a Claude-powered claim-auditing tool for life sciences researchers.**
 
+<sub>Built by a drug-discovery researcher who spends their days reading biomedical papers and is tired of claims that outrun their evidence — this is the tool I wanted for reading the literature critically.</sub>
+
 It is **not** a literature search engine. You give it a specific biological or translational claim, and instead of returning a smooth answer, it audits the claim: it exposes the supporting and conflicting evidence, checks that every citation is verbatim in its source, flags overclaims and contradictions, surfaces retrieval gaps, and tells you what would change the verdict.
 
 ![A BioClaim Auditor Claim Audit Report: the claim "BRAF V600E melanoma is associated with response to targeted inhibitor treatment" graded CONTESTED, an Evidence Map showing BRAF, melanoma and targeted-therapy each with one supporting and one conflicting source, an audit line reading citations 2/2 verbatim plus a contradiction flag, and a "what would change my mind" note.](docs/hero.svg)

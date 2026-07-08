@@ -26,9 +26,10 @@ point at.
 
 **On screen:** the README top (the hero image) or a title card "BioClaim Auditor".
 
-> "Ask an LLM whether BRAF V600E melanoma responds to targeted inhibitors and you
-> get a confident paragraph. But is it *true* — and how would you check? BioClaim
-> Auditor doesn't answer the question. It **audits the claim.**"
+> "I'm a drug-discovery researcher, and I read biomedical papers all day. Ask an
+> LLM whether BRAF V600E melanoma responds to targeted inhibitors and you get a
+> confident paragraph — but is it *true*, and how would you check? So I built
+> BioClaim Auditor. It doesn't answer the question. It **audits the claim.**"
 
 ---
 
