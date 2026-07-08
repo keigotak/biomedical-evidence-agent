@@ -34,8 +34,8 @@ contested (strength +0.00) — supports: 1×clinical; conflicts: 1×clinical
 ## Reviewer Critique (mock)
 - missing-counter-evidence: Sources disagree; do not treat this as settled.
 ## What Would Change My Mind?
-- An independent, well-powered study that breaks the tie, plus a mechanism
-  explaining why the existing reports disagree.
+- An independent, well-powered study on BRAF, melanoma and targeted therapy that
+  breaks the tie, plus a mechanism explaining why the existing reports disagree.
 ```
 
 Note what a smooth answer would have hidden: the claim is **contested**, not confirmed; both cited quotes are verified verbatim; and the tool says exactly what evidence would move it.

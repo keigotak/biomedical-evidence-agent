@@ -225,41 +225,68 @@ def _retrieval_gap_findings(card: EvidenceCard, on_claim) -> list[AuditFinding]:
     return findings
 
 
-def what_would_change_my_mind(card: EvidenceCard, audit: AuditReport) -> list[str]:
+def _join(names: list[str]) -> str:
+    """Human 'a, b and c' join, capped so the phrasing stays readable."""
+
+    names = names[:3]
+    if not names:
+        return ""
+    if len(names) == 1:
+        return names[0]
+    return ", ".join(names[:-1]) + " and " + names[-1]
+
+
+def what_would_change_my_mind(
+    card: EvidenceCard, audit: AuditReport, ontology: Ontology | None = None
+) -> list[str]:
     """Concrete evidence that would move the verdict, derived from card + audit.
 
     A researcher-facing "so what do I go find next" list keyed to the current
-    verdict and the gaps the audit surfaced — not generic advice.
+    verdict AND the specific claim entities / coverage gaps the audit surfaced —
+    it names the actual gene/drug/disease at issue rather than giving generic
+    advice, so the next step is directly actionable.
     """
 
     label = card.verdict.label if card.verdict else "insufficient"
+    coverage = claim_concept_coverage(card, ontology)
+    all_entities = [c["name"] for c in coverage]
+    uncovered = [
+        c["name"]
+        for c in coverage
+        if c["supports"] + c["conflicts"] + c["indirect"] == 0
+    ]
+    contested = [c["name"] for c in coverage if c["supports"] and c["conflicts"]]
+    focus = _join(contested or all_entities) or "the claim's entities"
     items: list[str] = []
-    categories = {f.category for f in audit.findings}
 
     if label == "insufficient":
         items.append(
-            "A source naming the exact claim entities with a directional clinical "
-            "outcome — the current matches are indirect or preclinical."
+            f"Direct clinical evidence linking {focus} with a stated outcome — "
+            "the current matches are indirect or preclinical."
         )
     elif label == "contested":
         items.append(
-            "An independent, well-powered study that breaks the tie, plus a "
-            "mechanism explaining why the existing reports disagree."
+            f"An independent, well-powered study on {focus} that breaks the tie, "
+            "plus a mechanism explaining why the existing reports disagree."
         )
     elif label == "mixed":
-        items.append("Higher-tier evidence weighted toward one direction to resolve the mix.")
+        items.append(
+            f"Higher-tier evidence on {focus} weighted toward one direction to "
+            "resolve the mix."
+        )
     elif label == "well-supported":
         items.append(
-            "A well-powered contradicting result, or evidence of publication bias, "
-            "since nothing currently opposes the claim."
+            f"A well-powered contradicting result on {focus}, or evidence of "
+            "publication bias, since nothing currently opposes the claim."
         )
 
-    if any(
-        f.category == "overclaim" and f.severity == "warn" for f in audit.findings
-    ):
+    if uncovered:
+        items.append(
+            f"Any source that actually addresses {_join(uncovered)} — named in the "
+            "claim but unaddressed by any retrieved evidence."
+        )
+    if any(f.category == "overclaim" and f.severity == "warn" for f in audit.findings):
         items.append("Human/clinical confirmation — the support so far is preclinical only.")
-    if "retrieval-gap" in categories:
-        items.append("A broader or clinical-tier search; the current retrieval has gaps.")
     if any(f.category == "citation" for f in audit.findings):
         items.append("Re-grounding of the flagged quotes against their source text.")
 

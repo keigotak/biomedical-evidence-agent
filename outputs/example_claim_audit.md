@@ -44,7 +44,7 @@ _Verdict 'contested' with 1 audit flag(s); treat the claim as provisional pendin
 - **next-source:** Pull an independent, higher-tier source that names the exact claim entities; start beyond toy-006.
 
 ## What Would Change My Mind?
-- An independent, well-powered study that breaks the tie, plus a mechanism explaining why the existing reports disagree.
+- An independent, well-powered study on BRAF, melanoma and targeted therapy that breaks the tie, plus a mechanism explaining why the existing reports disagree.
 
 ## Suggested Next Checks
 - Review cited records manually before drawing scientific conclusions.

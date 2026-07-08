@@ -113,6 +113,16 @@ class AuditTest(unittest.TestCase):
         wwcmm = what_would_change_my_mind(card, audit_card(card))
         self.assertTrue(any("contradicting" in item for item in wwcmm))
 
+    def test_what_would_change_my_mind_names_claim_entities(self) -> None:
+        # A contested claim's next step should name the actual entities at issue.
+        card = self._card(
+            "TREM2 is associated with Alzheimer's disease progression."
+        )
+        wwcmm = what_would_change_my_mind(card, audit_card(card))
+        joined = " ".join(wwcmm)
+        self.assertIn("TREM2", joined)
+        self.assertIn("Alzheimer's disease", joined)
+
     def test_evidence_map_covers_each_claim_entity(self) -> None:
         card = self._card(
             "BRAF V600E melanoma is associated with response to targeted inhibitor treatment."
