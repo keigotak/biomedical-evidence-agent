@@ -7,6 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "experiments"))
 
+import compare_claims  # noqa: E402
 import reviewer_duel  # noqa: E402
 
 
@@ -51,6 +52,22 @@ class ReviewerDuelTest(unittest.TestCase):
         point = result["advocate"]["points"][0]
         self.assertEqual(point["note"], "cites a fabricated quote")
         self.assertEqual(point["quote"], "")  # unfaithful citation dropped
+
+
+class CompareClaimsTest(unittest.TestCase):
+    CORPUS = ROOT / "data" / "sample_corpus.jsonl"
+
+    def test_table_grades_each_claim(self) -> None:
+        table = compare_claims.compare(
+            [
+                "EGFR variants are associated with response to TKI in NSCLC.",
+                "TP53 mutation definitively cures colorectal cancer with salbutamol.",
+            ],
+            corpus=self.CORPUS,
+        )
+        self.assertIn("| Claim | Verdict |", table)
+        self.assertIn("well-supported", table)   # EGFR
+        self.assertIn("overclaim", table)          # TP53 flag
 
 
 if __name__ == "__main__":

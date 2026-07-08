@@ -147,6 +147,9 @@ PYTHONPATH=src python experiments/hypothesis_stress_test.py \
 # Add --mode claude to run all three agents on the real API (llm extra + key).
 PYTHONPATH=src python experiments/reviewer_duel.py \
   --claim "BRAF V600E melanoma is associated with response to targeted inhibitor treatment."
+
+# Audit several claims at once and compare them in one table
+PYTHONPATH=src python experiments/compare_claims.py
 ```
 
 ## Project Structure
@@ -179,9 +182,11 @@ PYTHONPATH=src python experiments/reviewer_duel.py \
 │   ├── example_claim_audit_claude_reviewer.md # Real Claude reviewer critique
 │   ├── example_reviewer_duel.md   # Advocate vs skeptic debate transcript (mock)
 │   ├── example_reviewer_duel_claude.md # Same debate on real Claude (3 agents)
-│   └── example_evidence_map.html  # Visual per-entity Evidence Map (open in a browser)
+│   ├── example_evidence_map.html  # Visual per-entity Evidence Map (open in a browser)
+│   └── example_claim_comparison.md # Several claims audited side by side
 ├── experiments/                   # Side modules; do not affect the main demo
 │   ├── hypothesis_stress_test.py  # Multi-angle claim stress test
+│   ├── compare_claims.py          # Audit several claims into one comparison table
 │   └── reviewer_duel.py           # Advocate vs skeptic debate + judge
 ├── app.py                         # Streamlit UI (BioClaim Auditor)
 ├── Dockerfile                     # Containerized UI ([ui] extra only)

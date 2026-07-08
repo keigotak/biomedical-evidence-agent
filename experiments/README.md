@@ -38,7 +38,16 @@ PYTHONPATH=src python experiments/hypothesis_stress_test.py \
     --claim "BRAF V600E melanoma is associated with response to targeted inhibitor treatment."
   ```
 
+- **`compare_claims.py`** — audits several claims at once and prints one
+  comparison table (verdict, supporting/conflicting sources, top audit flag,
+  citation faithfulness), so you can scan a batch and see which claims hold up,
+  which are contested, and which overreach. Offline; no API key required.
+
+  ```bash
+  PYTHONPATH=src python experiments/compare_claims.py   # default demo set
+  ```
+
 ## Ideas parked here (not yet built)
 
-- **Evidence map UI** — a visual map of which sentence supports which part of the
-  claim (belongs in the Streamlit app, not here).
+- (The Evidence Map visualization graduated into the Streamlit app —
+  `report.evidence_map_html`.)
