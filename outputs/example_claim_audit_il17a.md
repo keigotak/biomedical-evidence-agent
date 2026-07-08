@@ -9,7 +9,7 @@
 ## Evidence Map
 - Independent sources: 1 supporting, 1 conflicting
 - Sentences: 1 supporting · 1 conflicting · 1 indirect
-- Records retrieved: 5
+- Records retrieved: 3
 
 ## Supporting Evidence
 - [high | clinical | toy-009@0-130] In this synthetic cohort, IL-17A blockade with secukinumab was associated with reduced fibrosis progression in systemic sclerosis.

@@ -14,7 +14,7 @@ Auditor doesn't answer the question — it audits the claim."
 ```bash
 python -m biomedical_evidence_agent.cli \
   --claim "BRAF V600E melanoma is associated with response to targeted inhibitor treatment." \
-  --top-k 5 --report claim-audit --reviewer mock
+  --top-k 3 --report claim-audit --reviewer mock
 ```
 
 Point at:
@@ -31,7 +31,7 @@ Point at:
 ```bash
 python -m biomedical_evidence_agent.cli \
   --claim "TP53 mutation definitively cures colorectal cancer with salbutamol." \
-  --top-k 5 --report claim-audit --reviewer mock
+  --top-k 3 --report claim-audit --reviewer mock
 ```
 
 Point at:
@@ -55,7 +55,7 @@ the source, so it can't hallucinate a citation."
 ```bash
 python -m biomedical_evidence_agent.cli \
   --claim "IL-17A blockade may reduce fibrosis progression in systemic sclerosis." \
-  --top-k 5 --report claim-audit --reviewer mock
+  --top-k 3 --report claim-audit --reviewer mock
 ```
 
 "Same tool, a totally different area — immunology and fibrosis. It finds one

@@ -9,10 +9,36 @@ It is **not** a literature search engine. You give it a specific biological or t
 ```bash
 python -m biomedical_evidence_agent.cli \
   --claim "BRAF V600E melanoma is associated with response to targeted inhibitor treatment." \
-  --top-k 5 --report claim-audit --reviewer mock
+  --top-k 3 --report claim-audit --reviewer mock
 ```
 
-A reviewable **Claim Audit Report** is the artifact ([`outputs/example_claim_audit.md`](outputs/example_claim_audit.md)) — Markdown or JSON (`--json`).
+A reviewable **Claim Audit Report** is the artifact ([`outputs/example_claim_audit.md`](outputs/example_claim_audit.md)) — Markdown or JSON (`--json`). The command above produces (abridged):
+
+```text
+# Claim Audit Report
+## Audit Verdict
+contested (strength +0.00) — supports: 1×clinical; conflicts: 1×clinical
+
+## Supporting Evidence
+- [high | clinical | toy-002@0-116] ...BRAF V600E melanoma as a setting where
+  targeted inhibitors can produce tumor responses.
+## Conflicting Evidence
+- [high | clinical | toy-006@0-150] ...BRAF status was not associated with
+  durable response to targeted inhibitor treatment in melanoma.
+
+## Citation Audit
+- 2/2 cited quotes are verbatim spans of their source (100% faithful).
+## Contradiction Flags
+- 🟡 Evidence conflicts: 1 supporting vs 1 conflicting independent source(s).
+
+## Reviewer Critique (mock)
+- missing-counter-evidence: Sources disagree; do not treat this as settled.
+## What Would Change My Mind?
+- An independent, well-powered study that breaks the tie, plus a mechanism
+  explaining why the existing reports disagree.
+```
+
+Note what a smooth answer would have hidden: the claim is **contested**, not confirmed; both cited quotes are verified verbatim; and the tool says exactly what evidence would move it.
 
 ## Core Workflow
 
@@ -67,7 +93,7 @@ Without Docker: `pip install '.[ui]' && streamlit run app.py`.
 ```bash
 python -m biomedical_evidence_agent.cli \
   --claim "BRAF V600E melanoma is associated with response to targeted inhibitor treatment." \
-  --top-k 5 --report claim-audit --reviewer mock
+  --top-k 3 --report claim-audit --reviewer mock
 ```
 
 Try the contrast — a claim whose language outruns its evidence gets an overclaim flag:
@@ -75,7 +101,7 @@ Try the contrast — a claim whose language outruns its evidence gets an overcla
 ```bash
 python -m biomedical_evidence_agent.cli \
   --claim "TP53 mutation definitively cures colorectal cancer with salbutamol." \
-  --top-k 5 --report claim-audit --reviewer mock
+  --top-k 3 --report claim-audit --reviewer mock
 ```
 
 It generalizes beyond oncology — the same audit works on an immunology / fibrosis claim, which comes out `contested` (one supporting, one conflicting clinical source):
@@ -83,7 +109,7 @@ It generalizes beyond oncology — the same audit works on an immunology / fibro
 ```bash
 python -m biomedical_evidence_agent.cli \
   --claim "IL-17A blockade may reduce fibrosis progression in systemic sclerosis." \
-  --top-k 5 --report claim-audit --reviewer mock
+  --top-k 3 --report claim-audit --reviewer mock
 ```
 
 Add `--json` for the machine-readable report, `--reviewer claude` for a Claude-backed critique (needs the `llm` extra + `ANTHROPIC_API_KEY`), or `--source pubmed` to audit against public PubMed title/abstract metadata.

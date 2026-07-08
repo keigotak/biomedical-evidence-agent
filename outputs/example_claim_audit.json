@@ -6,8 +6,8 @@
     "strength": 0.0,
     "support_sources": 1,
     "conflict_sources": 1,
-    "indirect_sentences": 4,
-    "rationale": "supports: 1\u00d7clinical; conflicts: 1\u00d7clinical; 4 indirect"
+    "indirect_sentences": 2,
+    "rationale": "supports: 1\u00d7clinical; conflicts: 1\u00d7clinical; 2 indirect"
   },
   "evidence": {
     "supporting": [
@@ -53,26 +53,6 @@
         "span": [
           137,
           285
-        ]
-      },
-      {
-        "source_id": "toy-010",
-        "text": "This synthetic record describes a small cohort where IL-17A blockade with secukinumab was not associated with reduced fibrosis progression in systemic sclerosis.",
-        "tier": "clinical",
-        "confidence": "low",
-        "span": [
-          0,
-          161
-        ]
-      },
-      {
-        "source_id": "toy-009",
-        "text": "In this synthetic cohort, IL-17A blockade with secukinumab was associated with reduced fibrosis progression in systemic sclerosis.",
-        "tier": "clinical",
-        "confidence": "low",
-        "span": [
-          0,
-          130
         ]
       }
     ]

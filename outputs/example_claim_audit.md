@@ -4,12 +4,12 @@
 > BRAF V600E melanoma is associated with response to targeted inhibitor treatment.
 
 ## Audit Verdict
-**contested** (strength +0.00) — supports: 1×clinical; conflicts: 1×clinical; 4 indirect
+**contested** (strength +0.00) — supports: 1×clinical; conflicts: 1×clinical; 2 indirect
 
 ## Evidence Map
 - Independent sources: 1 supporting, 1 conflicting
-- Sentences: 1 supporting · 1 conflicting · 4 indirect
-- Records retrieved: 5
+- Sentences: 1 supporting · 1 conflicting · 2 indirect
+- Records retrieved: 3
 
 ## Supporting Evidence
 - [high | clinical | toy-002@0-116] This sample record describes BRAF V600E melanoma as a setting where targeted inhibitors can produce tumor responses.
@@ -20,8 +20,6 @@
 ## Indirect / Insufficient Evidence
 - [medium | clinical | toy-001@0-136] In this toy abstract, EGFR activating variants are associated with response to tyrosine kinase inhibitors in non-small cell lung cancer.
 - [medium | clinical | toy-001@137-285] Acquired resistance is described after first-line inhibitor exposure, and follow-up testing is needed to identify resistance-associated alterations.
-- [low | clinical | toy-010@0-161] This synthetic record describes a small cohort where IL-17A blockade with secukinumab was not associated with reduced fibrosis progression in systemic sclerosis.
-- [low | clinical | toy-009@0-130] In this synthetic cohort, IL-17A blockade with secukinumab was associated with reduced fibrosis progression in systemic sclerosis.
 
 ## Citation Audit
 - 2/2 cited quotes are verbatim spans of their source (100% faithful).
