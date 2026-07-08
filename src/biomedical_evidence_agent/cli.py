@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 from .evidence import build_evidence_card, render_markdown
@@ -38,6 +39,19 @@ def _build_extractor(name: str):
     try:
         return LLMClaimExtractor(responder=anthropic_responder())
     except ExtractorUnavailable as exc:
+        raise SystemExit(str(exc)) from exc
+
+
+def _build_reviewer(name: str):
+    if name == "none":
+        return None
+    from .reviewer import ReviewerUnavailable, anthropic_reviewer, mock_reviewer
+
+    if name == "mock":
+        return mock_reviewer()
+    try:
+        return anthropic_reviewer()
+    except ReviewerUnavailable as exc:
         raise SystemExit(str(exc)) from exc
 
 
@@ -82,6 +96,30 @@ def main() -> None:
             "runs the same pipeline with an offline stand-in responder."
         ),
     )
+    parser.add_argument(
+        "--report",
+        choices=["evidence-card", "claim-audit"],
+        default="evidence-card",
+        help=(
+            "Output format. 'claim-audit' renders the BioClaim Auditor report "
+            "(verdict, evidence map, citation/overclaim/contradiction audit, "
+            "reviewer critique, what-would-change-my-mind)."
+        ),
+    )
+    parser.add_argument(
+        "--reviewer",
+        choices=["none", "mock", "claude"],
+        default="none",
+        help=(
+            "Reviewer agent that critiques the card (claim-audit report only). "
+            "'mock' is offline; 'claude' needs the 'llm' extra + ANTHROPIC_API_KEY."
+        ),
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit the claim-audit report as JSON instead of Markdown.",
+    )
     args = parser.parse_args()
 
     if args.target:
@@ -118,6 +156,21 @@ def main() -> None:
         source=args.source,
         extractor=_build_extractor(args.extractor),
     )
+
+    if args.report == "claim-audit":
+        from .audit import audit_card
+        from .report import audit_json, render_claim_audit
+        from .reviewer import review_card
+
+        audit = audit_card(card)
+        reviewer = _build_reviewer(args.reviewer)
+        critique = review_card(card, audit, reviewer=reviewer) if reviewer else None
+        if args.json:
+            print(json.dumps(audit_json(card, audit, critique), indent=2))
+        else:
+            print(render_claim_audit(card, audit, critique))
+        return
+
     print(render_markdown(card))
 
 

@@ -162,3 +162,57 @@ class EvidenceCard:
     next_checks: list[str] = field(default_factory=list)
     measurements: list[QuantMeasurement] = field(default_factory=list)
     verdict: "Verdict | None" = None
+
+
+@dataclass(frozen=True)
+class AuditFinding:
+    """One rule-based audit flag raised against a claim's evidence.
+
+    ``category`` is one of citation / overclaim / contradiction / retrieval-gap;
+    ``severity`` is info / warn / high. ``detail`` optionally cites the source or
+    span the flag is about, so every flag is traceable back to evidence.
+    """
+
+    category: str
+    severity: str
+    message: str
+    detail: str = ""
+
+
+@dataclass(frozen=True)
+class AuditReport:
+    """The rule-based audit of an evidence card: flags plus citation stats."""
+
+    findings: tuple[AuditFinding, ...] = ()
+    citations_checked: int = 0
+    citations_verbatim: int = 0
+
+    @property
+    def citation_faithfulness(self) -> float:
+        if not self.citations_checked:
+            return 1.0
+        return self.citations_verbatim / self.citations_checked
+
+
+@dataclass(frozen=True)
+class ReviewFinding:
+    """One reviewer critique of a claim's evidence card.
+
+    ``kind`` groups the note (overclaim / weak-citation / missing-counter-evidence
+    / next-source); ``quote`` is an optional verbatim span the reviewer cites,
+    which is re-checked against the source so a hallucinated quote is dropped.
+    """
+
+    kind: str
+    note: str
+    source_id: str = ""
+    quote: str = ""
+
+
+@dataclass(frozen=True)
+class ReviewerCritique:
+    """A reviewer agent's read of the card: findings plus a one-line assessment."""
+
+    assessment: str
+    findings: tuple[ReviewFinding, ...] = ()
+    reviewer: str = "mock"

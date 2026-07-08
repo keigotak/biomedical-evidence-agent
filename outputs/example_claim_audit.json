@@ -1,0 +1,110 @@
+{
+  "claim": "BRAF V600E melanoma is associated with response to targeted inhibitor treatment.",
+  "source": "sample",
+  "verdict": {
+    "label": "contested",
+    "strength": 0.0,
+    "support_sources": 1,
+    "conflict_sources": 1,
+    "indirect_sentences": 2,
+    "rationale": "supports: 1\u00d7clinical; conflicts: 1\u00d7clinical; 2 indirect"
+  },
+  "evidence": {
+    "supporting": [
+      {
+        "source_id": "toy-002",
+        "text": "This sample record describes BRAF V600E melanoma as a setting where targeted inhibitors can produce tumor responses.",
+        "tier": "clinical",
+        "confidence": "high",
+        "span": [
+          0,
+          116
+        ]
+      }
+    ],
+    "conflicting": [
+      {
+        "source_id": "toy-006",
+        "text": "This synthetic record describes a small cohort where BRAF status was not associated with durable response to targeted inhibitor treatment in melanoma.",
+        "tier": "clinical",
+        "confidence": "high",
+        "span": [
+          0,
+          150
+        ]
+      }
+    ],
+    "indirect": [
+      {
+        "source_id": "toy-001",
+        "text": "In this toy abstract, EGFR activating variants are associated with response to tyrosine kinase inhibitors in non-small cell lung cancer.",
+        "tier": "clinical",
+        "confidence": "medium",
+        "span": [
+          0,
+          136
+        ]
+      },
+      {
+        "source_id": "toy-001",
+        "text": "Acquired resistance is described after first-line inhibitor exposure, and follow-up testing is needed to identify resistance-associated alterations.",
+        "tier": "clinical",
+        "confidence": "medium",
+        "span": [
+          137,
+          285
+        ]
+      }
+    ]
+  },
+  "citation_audit": {
+    "checked": 2,
+    "verbatim": 2,
+    "faithfulness": 1.0
+  },
+  "flags": [
+    {
+      "category": "contradiction",
+      "severity": "warn",
+      "message": "Evidence conflicts: 1 supporting vs 1 conflicting independent source(s).",
+      "detail": ""
+    }
+  ],
+  "reviewer_critique": {
+    "reviewer": "mock",
+    "assessment": "Verdict 'contested' with 1 audit flag(s); treat the claim as provisional pending the checks below.",
+    "findings": [
+      {
+        "kind": "missing-counter-evidence",
+        "note": "Sources disagree; do not treat this as settled. Search specifically for the weaker side before concluding.",
+        "source_id": "",
+        "quote": ""
+      },
+      {
+        "kind": "weak-citation",
+        "note": "All 2 citations are verbatim, but they are single sentences \u2014 check they are not quoted out of context.",
+        "source_id": "",
+        "quote": ""
+      },
+      {
+        "kind": "next-source",
+        "note": "Pull an independent, higher-tier source that names the exact claim entities; start beyond toy-006.",
+        "source_id": "",
+        "quote": ""
+      }
+    ]
+  },
+  "what_would_change_my_mind": [
+    "An independent, well-powered study that breaks the tie, plus a mechanism explaining why the existing reports disagree."
+  ],
+  "next_checks": [
+    "Review cited records manually before drawing scientific conclusions.",
+    "Add model-based claim extraction with citation-grounded outputs.",
+    "Evaluate evidence support with a curated benchmark."
+  ],
+  "limitations": [
+    "Uses toy/sample abstracts by default; optional PubMed mode uses public metadata.",
+    "Deterministic stance labeling is a scaffold for a future model-backed extractor.",
+    "Evidence labels are illustrative research signals, not clinical guidance."
+  ]
+}

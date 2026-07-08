@@ -1,6 +1,6 @@
 # Architecture
 
-Biomedical Evidence Agent is a small evidence synthesis workflow for biology-facing biomedical AI demonstrations.
+Biomedical Evidence Agent is a small evidence synthesis workflow for biology-facing biomedical AI demonstrations. Its product surface is **BioClaim Auditor**, a claim-auditing tool built on this stack.
 
 ## Workflow
 
@@ -14,7 +14,10 @@ User query or biomedical claim
   -> weighted verdict aggregating support vs conflict by tier over independent sources
   -> quantitative parameter extraction (IC50/EC50/Ki/Cmax/half-life/...)
   -> structured evidence card
-  -> evaluation (entity linking / retrieval / stance / quantitative)
+  -> rule-based claim audit (citation / overclaim / contradiction / retrieval-gap flags)
+  -> reviewer critique (mock or Claude, citations re-grounded)
+  -> Claim Audit Report (Markdown / JSON)
+  -> evaluation (entity linking / retrieval / stance / quantitative / MoA / verdict / dossier)
 ```
 
 ## Components
@@ -78,6 +81,14 @@ Each modulator also carries a **mechanism-of-action** label (`agonist` / `antago
 ### Evidence Card
 
 The evidence card is the primary output object. It leads with the verdict, then contains the query or claim, retrieved records, stance-grouped sentences with facet/tier/confidence/provenance, an "Evidence by Angle" facet view, a "Quantitative Evidence" comparison, limitations, and next checks.
+
+### Claim Audit (BioClaim Auditor)
+
+`audit.py` runs four rule-based checks over a finished card, each traceable to evidence: **citation faithfulness** (every cited sentence must be a verbatim span of its source), **overclaim** (assertive claim language the verdict does not earn, or a `well-supported` verdict resting only on preclinical tiers), **contradiction** (independent sources on both sides), and **retrieval gaps** (no direct or no clinical-tier evidence). It also derives a `what_would_change_my_mind` list keyed to the verdict and the gaps. The audit never invents support — it only flags where the card outruns its evidence.
+
+`reviewer.py` adds a reviewer agent that critiques the card: is the claim too strong, are the citations weak, is the counter-evidence search thin, and what to pull next. It mirrors the extractor's dependency-injection design — a `reviewer` responder is injected, so an offline `mock_reviewer` and a Claude-backed `anthropic_reviewer` (behind the `llm` extra) share one pipeline. `review_card` re-checks every quote the reviewer cites against its source and drops any that is not verbatim, so a critique cannot introduce a fabricated citation.
+
+`report.py` renders the **Claim Audit Report** — the product surface — in Markdown or JSON: Claim, Audit Verdict, Evidence Map, Supporting / Conflicting / Indirect Evidence, Citation Audit, Overclaim / Contradiction / Retrieval-Gap flags, Reviewer Critique, What Would Change My Mind, Next Checks, and Limitations. Reached with `--report claim-audit` (`--reviewer mock|claude`, `--json`).
 
 ### Evaluation
 

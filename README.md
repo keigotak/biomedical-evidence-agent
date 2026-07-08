@@ -1,18 +1,38 @@
-# Biomedical Evidence Agent
+# BioClaim Auditor
 
-A small research-oriented demo for biology-facing biomedical evidence synthesis.
+> Product demo built on the `biomedical-evidence-agent` repo.
 
-This project explores how LLMs, retrieval, structured evidence extraction, and evaluation workflows can support scientific reasoning in biomedical research.
+**BioClaim Auditor is a Claude-powered claim-auditing tool for life sciences researchers.**
 
-It uses toy/sample data only and does not include any proprietary or confidential work.
+It is **not** a literature search engine. You give it a specific biological or translational claim, and instead of returning a smooth answer, it audits the claim: it exposes the supporting and conflicting evidence, checks that every citation is verbatim in its source, flags overclaims and contradictions, surfaces retrieval gaps, and tells you what would change the verdict.
 
-The main workflow is claim-centered evidence synthesis: given a biomedical claim, retrieve candidate evidence and organize extracted sentences into supporting, conflicting, and insufficient/indirect evidence. This is a research engineering demo, not medical advice, clinical decision support, or a reproduction of proprietary work.
+```bash
+python -m biomedical_evidence_agent.cli \
+  --claim "BRAF V600E melanoma is associated with response to targeted inhibitor treatment." \
+  --top-k 5 --report claim-audit --reviewer mock
+```
 
-## What It Demonstrates
+A reviewable **Claim Audit Report** is the artifact ([`outputs/example_claim_audit.md`](outputs/example_claim_audit.md)) — Markdown or JSON (`--json`).
+
+## Core Workflow
+
+**claim → retrieval → evidence extraction → stance labeling → citation / overclaim / contradiction audit → reviewer critique → Claim Audit Report**
+
+Every step is grounded: entities are normalized to concept ids, every quote is a verbatim span of its source, and the reviewer's citations are re-checked so a critique cannot smuggle in a fabricated quote. The pitch: *instead of asking Claude to produce a smooth answer, BioClaim Auditor forces the model to expose evidence, uncertainty, contradictions, citation faithfulness, and next checks.*
+
+The Claim Audit Report has these sections: **Claim · Audit Verdict · Evidence Map · Supporting / Conflicting / Indirect Evidence · Citation Audit · Overclaim Flags · Contradiction Flags · Retrieval Gaps · Reviewer Critique · What Would Change My Mind? · Suggested Next Checks · Limitations.**
+
+Safety: research signal only — no medical advice, no patient data, toy/sample data by default.
+
+## Under the Hood
+
+This is a compact but real evidence-synthesis stack. The repo (`biomedical-evidence-agent`) uses toy/sample data only and includes no proprietary or confidential work.
 
 - Ontology-based entity normalization: abbreviations, synonyms, and brand/generic forms (`AZD9291` / `osimertinib` / `Tagrisso`) resolve to one concept id with UniProt/ChEMBL/MeSH cross-references — the same-entity backbone for evidence integration
 - Retrieval over PubMed-abstract-style sample records, in a lexical, a concept-aware (ontology-grounded), and an optional embedding flavor
 - Claim-centered evidence grouping into supporting, conflicting, and insufficient/indirect evidence, with attribution guards (entity grounding + outcome polarity) that generalize beyond oncology
+- A rule-based **claim audit** (`audit.py`): citation faithfulness, overclaim, contradiction, and retrieval-gap flags, each traceable to evidence
+- A **reviewer agent** (`reviewer.py`) that critiques the card — offline `mock` or Claude-backed — with every cited quote re-grounded against its source
 - A weighted **verdict** that aggregates supporting vs conflicting evidence by study-design tier over independent sources into a graded, auditable bottom line (`well-supported` / `mixed` / `contested` / `insufficient`)
 - A target-centric **dossier** that pivots from a claim to a normalized target concept and rolls up its modulators (with potencies), disease contexts, evidence angles, and study tiers across the corpus
 - Provenance spans (`source_id@start-end`) back to the source text for every extracted sentence
@@ -22,30 +42,40 @@ The main workflow is claim-centered evidence synthesis: given a biomedical claim
 - Grounded mechanism-of-action extraction (agonist / antagonist) attributing a drug to its ontology-declared target, feeding target-dossier modulator labels
 - An optional model-backed (LLM) claim extractor with a citation-grounding guard that drops any quote not verbatim in its source — swappable for the deterministic default without weakening provenance
 - Optional PubMed title/abstract retrieval using public metadata only
-- An evaluation suite (entity linking, retrieval ablation, stance with guardrails, quantitative, extractor faithfulness)
+- An evaluation suite (entity linking, retrieval ablation, stance with guardrails, quantitative, MoA, weighted verdict, dossier indication verdict, extractor faithfulness)
 
 The implementation is intentionally compact. It is meant to show the shape of a biology-facing biomedical AI workflow, not to provide clinical or production guidance.
 
-## Example
+See [`docs/differentiation.md`](docs/differentiation.md) for what makes this an *auditor* rather than a search tool, and [`docs/hackathon_demo.md`](docs/hackathon_demo.md) for a 2-minute demo script.
+
+## Examples
+
+**Claim Audit Report** (the product surface):
 
 ```bash
 python -m biomedical_evidence_agent.cli \
-  --claim "EGFR T790M is associated with resistance to first-generation EGFR inhibitors in non-small cell lung cancer." \
-  --top-k 3
-```
-
-This produces a structured evidence card with retrieved records, extracted claims, evidence stance labels, and limitations.
-
-Optional PubMed metadata mode:
-
-```bash
-python -m biomedical_evidence_agent.cli \
-  --source pubmed \
   --claim "BRAF V600E melanoma is associated with response to targeted inhibitor treatment." \
-  --top-k 5
+  --top-k 5 --report claim-audit --reviewer mock
 ```
 
-PubMed mode uses public title/abstract metadata only. The default mode remains the local toy/sample corpus.
+Try the contrast — a claim whose language outruns its evidence gets an overclaim flag:
+
+```bash
+python -m biomedical_evidence_agent.cli \
+  --claim "TP53 mutation definitively cures colorectal cancer with salbutamol." \
+  --top-k 5 --report claim-audit --reviewer mock
+```
+
+Add `--json` for the machine-readable report, `--reviewer claude` for a Claude-backed critique (needs the `llm` extra + `ANTHROPIC_API_KEY`), or `--source pubmed` to audit against public PubMed title/abstract metadata.
+
+**Plain evidence card** (the default `--report evidence-card`) and **target dossier** (`--target EGFR`) are still available for the underlying stack.
+
+**Experiments** (side modules, do not affect the main demo — see [`experiments/`](experiments/)):
+
+```bash
+PYTHONPATH=src python experiments/hypothesis_stress_test.py \
+  --claim "BRAF V600E melanoma is associated with response to targeted inhibitor treatment."
+```
 
 ## Project Structure
 
@@ -63,7 +93,14 @@ PubMed mode uses public title/abstract metadata only. The default mode remains t
 │   └── evaluation_moa.jsonl       # Mechanism-of-action extraction set
 ├── docs/
 │   ├── architecture.md            # Workflow and component design
+│   ├── differentiation.md         # Why this is a claim auditor, not a search tool
+│   ├── hackathon_demo.md          # 2-minute demo script
 │   └── example_output.md          # Example evidence cards
+├── outputs/
+│   ├── example_claim_audit.md     # Saved Claim Audit Report (demo artifact)
+│   └── example_claim_audit.json   # Same report as JSON
+├── experiments/                   # Side modules; do not affect the main demo
+│   └── hypothesis_stress_test.py  # Multi-angle claim stress test
 ├── src/
 │   └── biomedical_evidence_agent/
 │       ├── cli.py                 # Command-line entry point
@@ -72,6 +109,9 @@ PubMed mode uses public title/abstract metadata only. The default mode remains t
 │       ├── retrieval.py           # Lexical + concept-aware retrievers
 │       ├── embedding.py           # Optional embedding retriever ([semantic] extra)
 │       ├── evidence.py            # Evidence card generation + weighted verdict
+│       ├── audit.py               # Rule-based claim audit (citation/overclaim/contradiction/gaps)
+│       ├── reviewer.py            # Reviewer agent (mock / Claude) with citation re-grounding
+│       ├── report.py              # Claim Audit Report renderer (Markdown + JSON)
 │       ├── extraction.py          # Optional model-backed claim extractor ([llm] extra)
 │       ├── dossier.py             # Target-centric evidence roll-up
 │       ├── quant.py               # Quantitative parameter extraction
