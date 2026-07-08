@@ -76,7 +76,7 @@ Each modulator also carries a **mechanism-of-action** label (`agonist` / `antago
 
 ### Verdict
 
-`assess_verdict` in `evidence.py` aggregates the on-claim evidence into a single graded bottom line. Support and conflict are summed as **tier weights over independent sources** — each record counts once per stance, so many sentences from one weak study cannot outvote a single strong one, and an in-vitro result cannot bury a clinical contradiction. The net balance in `[-1, 1]` maps to `well-supported`, `mixed`, `contested` (substantial evidence on both sides), or `insufficient` (too little tier-weighted evidence to call a direction — e.g. an in-silico-only claim). The per-tier breakdown is shown alongside the label so the grade is auditable rather than a black-box score.
+`assess_verdict` in `evidence.py` aggregates the on-claim evidence into a single graded bottom line. Support and conflict are summed as **tier weights over independent sources** — each record counts once per stance, so many sentences from one weak study cannot outvote a single strong one, and an in-vitro result cannot bury a clinical contradiction. The net balance in `[-1, 1]` maps to `well-supported`, `contested` (substantial evidence on both sides), `mixed`, `contradicted` (the evidence points against the claim), or `insufficient` (too little tier-weighted evidence to call a direction — e.g. an in-silico-only claim). The per-tier breakdown is shown alongside the label so the grade is auditable rather than a black-box score.
 
 ### Evidence Card
 

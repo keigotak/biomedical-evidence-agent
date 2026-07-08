@@ -578,6 +578,16 @@ class VerdictTest(unittest.TestCase):
         verdict = assess_verdict([self._claim("s1", "supports", "in_silico")])
         self.assertEqual(verdict.label, "insufficient")
 
+    def test_one_sided_conflict_is_contradicted(self) -> None:
+        # Evidence that only conflicts (no support) points AGAINST the claim ->
+        # 'contradicted', not 'mixed' (surfaced by running on real PubMed).
+        verdict = assess_verdict([
+            self._claim("c1", "conflicts", "clinical"),
+            self._claim("c2", "conflicts", "clinical"),
+        ])
+        self.assertEqual(verdict.label, "contradicted")
+        self.assertEqual(verdict.strength, -1.0)
+
     def test_no_on_claim_evidence_is_insufficient(self) -> None:
         verdict = assess_verdict([self._claim("s1", "insufficient", "clinical")])
         self.assertEqual(verdict.label, "insufficient")

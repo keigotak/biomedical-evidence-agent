@@ -383,6 +383,9 @@ def assess_verdict(claims: list[EvidenceClaim]) -> Verdict:
             label = "contested"
         elif balance >= WELL_SUPPORTED_BALANCE:
             label = "well-supported"
+        elif balance <= -WELL_SUPPORTED_BALANCE:
+            # Symmetric to well-supported: the evidence points against the claim.
+            label = "contradicted"
         else:
             label = "mixed"
 

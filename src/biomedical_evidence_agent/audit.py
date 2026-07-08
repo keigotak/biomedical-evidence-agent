@@ -279,6 +279,12 @@ def what_would_change_my_mind(
             f"A well-powered contradicting result on {focus}, or evidence of "
             "publication bias, since nothing currently opposes the claim."
         )
+    elif label == "contradicted":
+        items.append(
+            f"A well-powered result actually supporting the claim about {focus}, "
+            "or a flaw in the conflicting studies — the evidence currently points "
+            "against it."
+        )
 
     if uncovered:
         items.append(

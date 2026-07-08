@@ -54,6 +54,7 @@ _VERDICT_COLOR = {
     "well-supported": "#1a7f37",
     "mixed": "#9a6700",
     "contested": "#bf8700",
+    "contradicted": "#d03b3b",
     "insufficient": "#6e7781",
 }
 _SEVERITY_ST = {"high": st.error, "warn": st.warning, "info": st.success}

@@ -24,6 +24,7 @@ VERDICT_COLOR = {
     "well-supported": "#0ca30c",
     "contested": "#bf8700",
     "mixed": "#9a6700",
+    "contradicted": "#d03b3b",
     "insufficient": "#6e7781",
 }
 INK = "#0b0b0b"

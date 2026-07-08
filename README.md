@@ -63,7 +63,7 @@ This is a compact but real evidence-synthesis stack. The repo (`biomedical-evide
 - Claim-centered evidence grouping into supporting, conflicting, and insufficient/indirect evidence, with attribution guards (entity grounding + outcome polarity) that generalize beyond oncology
 - A rule-based **claim audit** (`audit.py`): citation faithfulness, overclaim, contradiction, and retrieval-gap flags, each traceable to evidence
 - A **reviewer agent** (`reviewer.py`) that critiques the card — offline `mock` or Claude-backed — with every cited quote re-grounded against its source
-- A weighted **verdict** that aggregates supporting vs conflicting evidence by study-design tier over independent sources into a graded, auditable bottom line (`well-supported` / `mixed` / `contested` / `insufficient`)
+- A weighted **verdict** that aggregates supporting vs conflicting evidence by study-design tier over independent sources into a graded, auditable bottom line (`well-supported` / `contested` / `mixed` / `contradicted` / `insufficient`)
 - A target-centric **dossier** that pivots from a claim to a normalized target concept and rolls up its modulators (with potencies), disease contexts, evidence angles, and study tiers across the corpus
 - Provenance spans (`source_id@start-end`) back to the source text for every extracted sentence
 - Evidence-tier weighting by study design (`clinical` > `in_vivo` > `association` > `in_vitro` > `in_silico`) folded into confidence
