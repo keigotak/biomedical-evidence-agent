@@ -451,6 +451,16 @@ class MoaExtractionTest(unittest.TestCase):
         rel = self._extract(text)[0]
         self.assertEqual(text[rel.start:rel.end], rel.quote)
 
+    def test_cue_collision_resolves_by_proximity(self) -> None:
+        # Both an antagonist ('suppressed') and an agonist ('activation') cue
+        # appear; the one next to the drug wins instead of the pair abstaining.
+        rels = self._extract(
+            "Secukinumab suppressed IL-17A signaling and reduced fibroblast activation."
+        )
+        self.assertEqual(
+            [(r.drug_name, r.mechanism) for r in rels], [("secukinumab", "antagonist")]
+        )
+
     def test_moa_evaluation_matches_gold(self) -> None:
         report = evaluate_moa(load_moa_cases(ROOT / "data" / "evaluation_moa.jsonl"))
         self.assertEqual(report.f1, 1.0)
@@ -461,8 +471,8 @@ class MoaExtractionTest(unittest.TestCase):
         # future fix to a documented limitation forces this test to be updated.
         results = evaluate_stress(ROOT / "data" / "evaluation_stress.jsonl")
         handled = {r.id for r in results if r.handled}
-        self.assertEqual(handled, {"ss-001", "ss-002", "ss-003", "ss-004"})
-        self.assertEqual(len(results), 5)
+        self.assertEqual(handled, {"ss-001", "ss-002", "ss-003", "ss-004", "ss-005"})
+        self.assertEqual(len(results), 7)  # ss-006/007 are current, documented limits
 
 
 class QuantRobustnessTest(unittest.TestCase):

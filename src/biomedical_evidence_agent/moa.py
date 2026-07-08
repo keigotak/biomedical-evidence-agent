@@ -73,18 +73,6 @@ NEGATION_CUES = frozenset(
 )
 
 
-def _mechanism_from_cues(words: set[str]) -> str:
-    if words & NEGATION_CUES:
-        return ""
-    agonist = bool(words & AGONIST_CUES)
-    antagonist = bool(words & ANTAGONIST_CUES)
-    if agonist and not antagonist:
-        return "agonist"
-    if antagonist and not agonist:
-        return "antagonist"
-    return ""
-
-
 def extract_moa(
     text: str,
     *,
@@ -104,9 +92,22 @@ def extract_moa(
     ontology = ontology or Ontology.load()
     relations: list[MoaRelation] = []
     for sentence, offset in _sentence_spans(text):
-        words = {match.group() for match in _WORD_RE.finditer(sentence.lower())}
-        mechanism = _mechanism_from_cues(words)
-        if not mechanism:
+        lowered = sentence.lower()
+        words = {match.group() for match in _WORD_RE.finditer(lowered)}
+        # A negation anywhere in the sentence reverses meaning — abstain.
+        if words & NEGATION_CUES:
+            continue
+        # Positions of directional cues, so a collision (both an agonist and an
+        # antagonist cue in one sentence) is resolved by proximity to the drug
+        # rather than abstaining: "secukinumab suppressed IL-17A ... reduced
+        # fibroblast activation" is antagonist (the cue next to the drug), not
+        # ambiguous. A single-cue sentence is unaffected.
+        cues = [
+            (m.start(), "agonist" if m.group() in AGONIST_CUES else "antagonist")
+            for m in _WORD_RE.finditer(lowered)
+            if m.group() in AGONIST_CUES or m.group() in ANTAGONIST_CUES
+        ]
+        if not cues:
             continue
         # Trim so the provenance span slices back to the exact quote.
         quote = sentence.strip()
@@ -121,6 +122,10 @@ def extract_moa(
             if concept.type not in ("drug", "drug_class"):
                 continue
             targets_here = [t for t in concept.targets if t in genes]
+            if not targets_here:
+                continue
+            drug_center = (match.start + match.end) / 2
+            mechanism = min(cues, key=lambda c: abs(c[0] - drug_center))[1]
             for target_id in targets_here:
                 relations.append(
                     MoaRelation(
