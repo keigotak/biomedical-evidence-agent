@@ -250,7 +250,7 @@ python -m biomedical_evidence_agent.cli --target EGFR
 # Evaluation suite (see docs/evaluation.md for design, n per stream, and honest
 # caveats): entity linking, retrieval ablation, stance guardrails, quantitative,
 # MoA, verdict, dossier verdict, extractor ablation, and a stress set of
-# deliberately hard cases reported at its true 6/7 (not curated to perfect).
+# deliberately hard cases reported at its true 7/9 (not curated to perfect).
 python -m biomedical_evidence_agent.evaluation
 
 python -m unittest discover -s tests

@@ -36,6 +36,13 @@ _VALUE_RE = re.compile(
 _RANGE_RE = re.compile(
     r"(?P<lo>\d+(?:\.\d+)?)\s*[-–—]\s*\d+(?:\.\d+)?\s*(?P<unit>" + _UNIT_ALT + r")(?![A-Za-z])"
 )
+# Scientific notation: "1.2 x 10^-9 M" / "1.2 × 10-9 M" / "1.2e-9 M". A plain value
+# search otherwise grabs the exponent digit ("9 M"), so match the whole form and
+# compute mantissa × 10**exp.
+_SCI_RE = re.compile(
+    r"(?P<mant>\d+(?:\.\d+)?)\s*(?:[x×*]\s*10\s*\^?|[eE])\s*(?P<exp>[-−+]?\d+)"
+    r"\s*(?P<unit>" + _UNIT_ALT + r")(?![A-Za-z])"
+)
 _UNIT_CANON = {
     "uM": "µM",
     "μM": "µM",
@@ -105,13 +112,19 @@ def extract_measurements(
                 value_match = _VALUE_RE.search(window)
                 if not value_match:
                     continue
-                # A range starting at/before the plain match wins: take its lower bound.
+                # Prefer the most specific form that starts at/before the plain
+                # match: scientific notation, then a range (lower bound), else plain.
+                sci_match = _SCI_RE.search(window)
                 range_match = _RANGE_RE.search(window)
-                if range_match and range_match.start() <= value_match.start():
-                    rel, val = "=", range_match.group("lo")
+                if sci_match and sci_match.start() <= value_match.start():
+                    exp = int(sci_match.group("exp").replace("−", "-").lstrip("+"))
+                    rel, value = "=", float(sci_match.group("mant")) * (10 ** exp)
+                    unit, m_start, m_end = sci_match.group("unit"), sci_match.start(), sci_match.end()
+                elif range_match and range_match.start() <= value_match.start():
+                    rel, value = "=", float(range_match.group("lo"))
                     unit, m_start, m_end = range_match.group("unit"), range_match.start(), range_match.end()
                 else:
-                    rel, val = value_match.group("rel") or "=", value_match.group("val")
+                    rel, value = value_match.group("rel") or "=", float(value_match.group("val"))
                     unit, m_start, m_end = value_match.group("unit"), value_match.start(), value_match.end()
                 # Skip if the value is negated before it is stated.
                 if set(_WORD_RE.findall(window[:m_start].lower())) & _NEGATION:
@@ -125,7 +138,7 @@ def extract_measurements(
                     QuantMeasurement(
                         parameter=name,
                         relation=rel,
-                        value=float(val),
+                        value=value,
                         unit=canonical_unit,
                         source_id=source_id,
                         primary_entity=primary,

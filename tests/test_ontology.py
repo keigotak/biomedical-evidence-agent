@@ -475,9 +475,11 @@ class MoaExtractionTest(unittest.TestCase):
         results = evaluate_stress(ROOT / "data" / "evaluation_stress.jsonl")
         handled = {r.id for r in results if r.handled}
         self.assertEqual(
-            handled, {"ss-001", "ss-002", "ss-003", "ss-004", "ss-005", "ss-006"}
+            handled,
+            {"ss-001", "ss-002", "ss-003", "ss-004", "ss-005", "ss-006", "ss-007"},
         )
-        self.assertEqual(len(results), 7)  # ss-007 (sci notation) is a documented limit
+        # ss-008 (unicode superscript) and ss-009 (cross-sentence) are open limits.
+        self.assertEqual(len(results), 9)
 
 
 class QuantRobustnessTest(unittest.TestCase):
@@ -515,6 +517,12 @@ class QuantRobustnessTest(unittest.TestCase):
             )
         ]
         self.assertEqual(got, [("IC50", "=", 10.0, "nM")])
+
+    def test_scientific_notation_is_computed(self) -> None:
+        from biomedical_evidence_agent.quant import extract_measurements
+        for text in ("The IC50 was 1.2 x 10^-9 M.", "The IC50 was 1.2e-9 M."):
+            got = [(m.parameter, m.value, m.unit) for m in extract_measurements(text, ontology=self.ontology)]
+            self.assertEqual(got, [("IC50", 1.2e-09, "M")], text)
 
 
 class VerdictTest(unittest.TestCase):

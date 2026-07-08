@@ -44,7 +44,7 @@ citation leaks). A bare "1.000" on the small extraction golds is worth much less
 ## Stress set — the edges, reported honestly
 
 `data/evaluation_stress.jsonl` holds deliberately hard cases and is **not expected
-to be perfect**. It currently scores **6/7 handled**; the misses are documented
+to be perfect**. It currently scores **7/9 handled**; the misses are documented
 limitations, not regressions, and the state is pinned by a test so a future fix
 has to update it:
 
@@ -56,7 +56,9 @@ has to update it:
 | `ss-004` numeric range (`10–20 nM`) | ✅ | takes the lower (cited) bound |
 | `ss-005` cue collision (`suppressed … activation`) | ✅ | nearest-to-drug cue wins (antagonist) |
 | `ss-006` qualifying hyphen prefix (`anti-EGFR`) | ✅ | anti-/pan- link; only negating non-/un- stay blocked |
-| `ss-007` scientific notation (`1.2 × 10⁻⁹ M`) | ❌ | the value regex grabs the exponent digit |
+| `ss-007` scientific notation (ASCII `1.2 x 10^-9`) | ✅ | computed as mantissa × 10^exp |
+| `ss-008` Unicode superscript (`1.2 × 10⁻⁹`) | ❌ | only ASCII exponent forms are parsed |
+| `ss-009` cross-sentence attribution | ❌ | drug and its cue+target are in different sentences |
 
 These are the honest next targets. Each is a concrete, reproducible failure with a
 one-line cause — the point of the stress set is to name them rather than let a
