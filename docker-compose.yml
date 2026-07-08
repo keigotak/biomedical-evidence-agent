@@ -1,0 +1,9 @@
+services:
+  bioclaim-auditor:
+    build: .
+    ports:
+      - "8501:8501"
+    environment:
+      # Optional: enables the Claude-backed reviewer (--reviewer claude in the UI).
+      # Leave unset to run fully offline with the deterministic + mock paths.
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}

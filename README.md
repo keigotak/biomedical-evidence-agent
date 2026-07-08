@@ -48,7 +48,19 @@ The implementation is intentionally compact. It is meant to show the shape of a 
 
 See [`docs/differentiation.md`](docs/differentiation.md) for what makes this an *auditor* rather than a search tool, and [`docs/hackathon_demo.md`](docs/hackathon_demo.md) for a 2-minute demo script.
 
-## Examples
+## Web UI (Docker)
+
+The reviewable Claim Audit Report also runs as a Streamlit app. Docker keeps it self-contained — no local Streamlit install, and the dependency-free core stays intact:
+
+```bash
+docker compose up --build      # then open http://localhost:8501
+```
+
+Enter a claim, pick source / retriever / reviewer, and get the verdict, audit flags, reviewer critique, and a downloadable Markdown/JSON report. To enable the Claude-backed reviewer, set `ANTHROPIC_API_KEY` in your environment before `docker compose up`.
+
+Without Docker: `pip install '.[ui]' && streamlit run app.py`.
+
+## Examples (CLI)
 
 **Claim Audit Report** (the product surface):
 
@@ -101,6 +113,9 @@ PYTHONPATH=src python experiments/hypothesis_stress_test.py \
 │   └── example_claim_audit.json   # Same report as JSON
 ├── experiments/                   # Side modules; do not affect the main demo
 │   └── hypothesis_stress_test.py  # Multi-angle claim stress test
+├── app.py                         # Streamlit UI (BioClaim Auditor)
+├── Dockerfile                     # Containerized UI ([ui] extra only)
+├── docker-compose.yml             # `docker compose up` -> http://localhost:8501
 ├── src/
 │   └── biomedical_evidence_agent/
 │       ├── cli.py                 # Command-line entry point
