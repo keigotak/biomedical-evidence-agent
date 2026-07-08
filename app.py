@@ -21,7 +21,11 @@ import streamlit as st
 
 from biomedical_evidence_agent.audit import audit_card, claim_concept_coverage
 from biomedical_evidence_agent.evidence import build_evidence_card
-from biomedical_evidence_agent.report import audit_json, render_claim_audit
+from biomedical_evidence_agent.report import (
+    audit_json,
+    evidence_map_html,
+    render_claim_audit,
+)
 from biomedical_evidence_agent.retrieval import (
     ConceptAwareRetriever,
     LexicalRetriever,
@@ -167,19 +171,21 @@ def _render(card, audit, critique) -> None:
     coverage = claim_concept_coverage(card)
     if coverage:
         st.subheader("Evidence Map — coverage by claim entity")
-        st.table(
-            [
-                {
-                    "entity": e["name"],
-                    "type": e["type"],
-                    "supporting": e["supports"],
-                    "conflicting": e["conflicts"],
-                    "indirect": e["indirect"],
-                    "sources": ", ".join(e["sources"]) or "⚠ none",
-                }
-                for e in coverage
-            ]
-        )
+        st.markdown(evidence_map_html(card), unsafe_allow_html=True)
+        with st.expander("Evidence Map as a table"):
+            st.table(
+                [
+                    {
+                        "entity": e["name"],
+                        "type": e["type"],
+                        "supporting": e["supports"],
+                        "conflicting": e["conflicts"],
+                        "indirect": e["indirect"],
+                        "sources": ", ".join(e["sources"]) or "⚠ none",
+                    }
+                    for e in coverage
+                ]
+            )
 
     if audit.findings:
         st.subheader("Audit flags")

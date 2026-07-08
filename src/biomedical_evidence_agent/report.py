@@ -13,6 +13,107 @@ from .schemas import AuditReport, EvidenceCard, ReviewerCritique
 
 _SEVERITY_MARK = {"high": "🔴", "warn": "🟡", "info": "🟢"}
 
+# Status palette (validated for CVD + light/dark surfaces in the dataviz skill).
+# Colour is a SECONDARY encoding here — every segment also carries a count and a
+# legend, so the map is readable without relying on hue.
+_STANCE_COLOR = {
+    "supports": "#0ca30c",   # good
+    "conflicts": "#fab219",  # warning
+    "indirect": "#9a9a94",   # neutral
+}
+_UNCOVERED_COLOR = "#d03b3b"  # critical
+
+
+def evidence_map_html(card: EvidenceCard, ontology=None) -> str:
+    """Render the per-entity Evidence Map as a self-contained HTML bar strip.
+
+    One row per claim entity (gene/drug/disease); a horizontal bar segmented by
+    stance (supporting / conflicting / indirect), widths proportional to the
+    sentence counts, with the counts spelled out beside it. An entity no
+    retrieved sentence addresses gets a red "no evidence" bar. Pure string output
+    (no UI dependency) so it can be unit-tested and embedded anywhere HTML renders
+    — the Streamlit app injects it with `st.markdown(..., unsafe_allow_html=True)`.
+    """
+
+    coverage = claim_concept_coverage(card, ontology)
+    if not coverage:
+        return ""
+
+    rows = []
+    for entry in coverage:
+        counts = [
+            ("supports", entry["supports"]),
+            ("conflicts", entry["conflicts"]),
+            ("indirect", entry["indirect"]),
+        ]
+        total = sum(n for _, n in counts)
+        if total == 0:
+            bar = (
+                f"<span class='em-seg' style='width:100%;background:{_UNCOVERED_COLOR}'>"
+                "no evidence</span>"
+            )
+            summary = "⚠ unaddressed by any retrieved sentence"
+        else:
+            segs = [
+                f"<span class='em-seg' style='width:{n / total * 100:.1f}%;"
+                f"background:{_STANCE_COLOR[stance]}' title='{stance}: {n}'></span>"
+                for stance, n in counts
+                if n
+            ]
+            bar = "".join(segs)
+            _label = {"supports": "supporting", "conflicts": "conflicting", "indirect": "indirect"}
+            summary = " · ".join(
+                f"{n} {_label[stance]}" for stance, n in counts if n
+            )
+        rows.append(
+            "<div class='em-row'>"
+            f"<div class='em-label'>{_esc(entry['name'])}"
+            f" <span class='em-type'>{_esc(entry['type'])}</span></div>"
+            f"<div class='em-bar'>{bar}</div>"
+            f"<div class='em-sum'>{summary}</div>"
+            "</div>"
+        )
+
+    legend = (
+        "<div class='em-legend'>"
+        + "".join(
+            f"<span><i style='background:{color}'></i>{label}</span>"
+            for label, color in [
+                ("supporting", _STANCE_COLOR["supports"]),
+                ("conflicting", _STANCE_COLOR["conflicts"]),
+                ("indirect", _STANCE_COLOR["indirect"]),
+                ("uncovered", _UNCOVERED_COLOR),
+            ]
+        )
+        + "</div>"
+    )
+    style = (
+        "<style>"
+        ".em-wrap{font-size:0.9rem;line-height:1.4}"
+        ".em-row{display:flex;align-items:center;gap:0.6rem;margin:0.25rem 0}"
+        ".em-label{flex:0 0 11rem;text-align:right}"
+        ".em-type{opacity:0.55;font-size:0.8em}"
+        ".em-bar{flex:0 0 9rem;height:0.85rem;display:flex;gap:2px;"
+        "border-radius:4px;overflow:hidden}"
+        ".em-seg{height:100%;border-radius:3px;color:#fff;font-size:0.7em;"
+        "text-align:center;white-space:nowrap}"
+        ".em-sum{flex:1;opacity:0.85}"
+        ".em-legend{display:flex;gap:1rem;margin-top:0.5rem;font-size:0.8rem;opacity:0.8}"
+        ".em-legend i{display:inline-block;width:0.7rem;height:0.7rem;"
+        "border-radius:2px;margin-right:0.3rem;vertical-align:middle}"
+        "</style>"
+    )
+    return f"{style}<div class='em-wrap'>{''.join(rows)}{legend}</div>"
+
+
+def _esc(text: str) -> str:
+    return (
+        str(text)
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+    )
+
 
 def render_claim_audit(
     card: EvidenceCard,

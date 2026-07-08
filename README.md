@@ -82,7 +82,7 @@ The reviewable Claim Audit Report also runs as a Streamlit app. Docker keeps it 
 docker compose up --build      # then open http://localhost:8501
 ```
 
-Enter a claim, pick source / retriever / reviewer, and get the verdict, audit flags, reviewer critique, and a downloadable Markdown/JSON report. To enable the Claude-backed reviewer, set `ANTHROPIC_API_KEY` in your environment before `docker compose up`.
+Enter a claim, pick source / retriever / reviewer, and get the verdict, a visual **Evidence Map** (a per-entity bar showing which parts of the claim are supported, contested, or unaddressed — [standalone preview](outputs/example_evidence_map.html)), audit flags, the reviewer critique, and a downloadable Markdown/JSON report. To enable the Claude-backed reviewer, set `ANTHROPIC_API_KEY` in your environment before `docker compose up`.
 
 Without Docker: `pip install '.[ui]' && streamlit run app.py`.
 
@@ -171,7 +171,8 @@ PYTHONPATH=src python experiments/reviewer_duel.py \
 │   ├── example_claim_audit_pubmed.md # Live-PubMed audit snapshot (real papers)
 │   ├── example_claim_audit_claude_reviewer.md # Real Claude reviewer critique
 │   ├── example_reviewer_duel.md   # Advocate vs skeptic debate transcript (mock)
-│   └── example_reviewer_duel_claude.md # Same debate on real Claude (3 agents)
+│   ├── example_reviewer_duel_claude.md # Same debate on real Claude (3 agents)
+│   └── example_evidence_map.html  # Visual per-entity Evidence Map (open in a browser)
 ├── experiments/                   # Side modules; do not affect the main demo
 │   ├── hypothesis_stress_test.py  # Multi-angle claim stress test
 │   └── reviewer_duel.py           # Advocate vs skeptic debate + judge

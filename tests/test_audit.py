@@ -9,7 +9,11 @@ from biomedical_evidence_agent.audit import (
     what_would_change_my_mind,
 )
 from biomedical_evidence_agent.evidence import build_evidence_card
-from biomedical_evidence_agent.report import audit_json, render_claim_audit
+from biomedical_evidence_agent.report import (
+    audit_json,
+    evidence_map_html,
+    render_claim_audit,
+)
 from biomedical_evidence_agent.retrieval import ConceptAwareRetriever, load_corpus
 from biomedical_evidence_agent.reviewer import mock_reviewer, review_card
 from biomedical_evidence_agent.schemas import (
@@ -215,6 +219,28 @@ class ReportTest(unittest.TestCase):
             "## Reviewer Critique",
         ]:
             self.assertIn(heading, text)
+
+    def test_evidence_map_html_renders_bars_and_uncovered(self) -> None:
+        # A contested claim: each entity gets a supporting + conflicting segment.
+        html = evidence_map_html(
+            self._card(
+                "BRAF V600E melanoma is associated with response to targeted inhibitor treatment."
+            )
+        )
+        self.assertIn("em-wrap", html)
+        self.assertIn("BRAF", html)
+        self.assertIn("#0ca30c", html)  # supporting colour present
+        # An uncovered entity renders the red "no evidence" bar.
+        overclaim = evidence_map_html(
+            self._card("TP53 mutation definitively cures colorectal cancer with salbutamol.")
+        )
+        self.assertIn("no evidence", overclaim)
+        self.assertIn("#d03b3b", overclaim)
+
+    def test_evidence_map_html_is_empty_when_no_entities(self) -> None:
+        # A claim with no resolvable entities yields no map (empty string, not markup).
+        card = EvidenceCard(query="nothing here", retrieved=[], claims=[], claim="nothing here")
+        self.assertEqual(evidence_map_html(card), "")
 
     def test_json_report_is_serializable_and_complete(self) -> None:
         import json
