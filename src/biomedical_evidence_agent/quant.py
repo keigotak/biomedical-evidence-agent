@@ -36,11 +36,14 @@ _VALUE_RE = re.compile(
 _RANGE_RE = re.compile(
     r"(?P<lo>\d+(?:\.\d+)?)\s*[-–—]\s*\d+(?:\.\d+)?\s*(?P<unit>" + _UNIT_ALT + r")(?![A-Za-z])"
 )
-# Scientific notation: "1.2 x 10^-9 M" / "1.2 × 10-9 M" / "1.2e-9 M". A plain value
-# search otherwise grabs the exponent digit ("9 M"), so match the whole form and
-# compute mantissa × 10**exp.
+# Scientific notation: "1.2 x 10^-9 M", "1.2e-9 M", and the Unicode superscript
+# form "1.2 × 10⁻⁹ M". A plain value search otherwise grabs the exponent digit
+# ("9 M"), so match the whole form and compute mantissa × 10**exp.
+_SUPERSCRIPT = str.maketrans("⁻⁺⁰¹²³⁴⁵⁶⁷⁸⁹", "-+0123456789")
 _SCI_RE = re.compile(
-    r"(?P<mant>\d+(?:\.\d+)?)\s*(?:[x×*]\s*10\s*\^?|[eE])\s*(?P<exp>[-−+]?\d+)"
+    r"(?P<mant>\d+(?:\.\d+)?)\s*"
+    r"(?:(?:[x×*]\s*10\s*\^?|[eE])\s*(?P<exp>[-−+]?\d+)"
+    r"|[x×*]\s*10\s*(?P<supexp>[⁻⁺]?[⁰¹²³⁴⁵⁶⁷⁸⁹]+))"
     r"\s*(?P<unit>" + _UNIT_ALT + r")(?![A-Za-z])"
 )
 _UNIT_CANON = {
@@ -109,23 +112,27 @@ def extract_measurements(
             )
             for param_match in regex.finditer(sentence):
                 window = sentence[param_match.end() : param_match.end() + _WINDOW]
+                # Prefer the most specific form that starts at/before the others:
+                # scientific notation (incl. the Unicode-superscript form, which a
+                # plain search misses entirely), then a range (lower bound), else a
+                # plain value.
                 value_match = _VALUE_RE.search(window)
-                if not value_match:
-                    continue
-                # Prefer the most specific form that starts at/before the plain
-                # match: scientific notation, then a range (lower bound), else plain.
                 sci_match = _SCI_RE.search(window)
                 range_match = _RANGE_RE.search(window)
-                if sci_match and sci_match.start() <= value_match.start():
-                    exp = int(sci_match.group("exp").replace("−", "-").lstrip("+"))
+                vstart = value_match.start() if value_match else len(window) + 1
+                if sci_match and sci_match.start() <= vstart:
+                    exp_str = (sci_match.group("exp") or sci_match.group("supexp")).translate(_SUPERSCRIPT)
+                    exp = int(exp_str.replace("−", "-").lstrip("+"))
                     rel, value = "=", float(sci_match.group("mant")) * (10 ** exp)
                     unit, m_start, m_end = sci_match.group("unit"), sci_match.start(), sci_match.end()
-                elif range_match and range_match.start() <= value_match.start():
+                elif range_match and range_match.start() <= vstart:
                     rel, value = "=", float(range_match.group("lo"))
                     unit, m_start, m_end = range_match.group("unit"), range_match.start(), range_match.end()
-                else:
+                elif value_match:
                     rel, value = value_match.group("rel") or "=", float(value_match.group("val"))
                     unit, m_start, m_end = value_match.group("unit"), value_match.start(), value_match.end()
+                else:
+                    continue
                 # Skip if the value is negated before it is stated.
                 if set(_WORD_RE.findall(window[:m_start].lower())) & _NEGATION:
                     continue

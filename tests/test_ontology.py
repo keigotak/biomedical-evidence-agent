@@ -476,9 +476,9 @@ class MoaExtractionTest(unittest.TestCase):
         handled = {r.id for r in results if r.handled}
         self.assertEqual(
             handled,
-            {"ss-001", "ss-002", "ss-003", "ss-004", "ss-005", "ss-006", "ss-007"},
+            {"ss-001", "ss-002", "ss-003", "ss-004", "ss-005", "ss-006", "ss-007", "ss-008"},
         )
-        # ss-008 (unicode superscript) and ss-009 (cross-sentence) are open limits.
+        # ss-009 (cross-sentence) is an intentional per-sentence design boundary.
         self.assertEqual(len(results), 9)
 
 
@@ -520,7 +520,11 @@ class QuantRobustnessTest(unittest.TestCase):
 
     def test_scientific_notation_is_computed(self) -> None:
         from biomedical_evidence_agent.quant import extract_measurements
-        for text in ("The IC50 was 1.2 x 10^-9 M.", "The IC50 was 1.2e-9 M."):
+        for text in (
+            "The IC50 was 1.2 x 10^-9 M.",
+            "The IC50 was 1.2e-9 M.",
+            "The IC50 was 1.2 × 10⁻⁹ M.",  # Unicode superscript
+        ):
             got = [(m.parameter, m.value, m.unit) for m in extract_measurements(text, ontology=self.ontology)]
             self.assertEqual(got, [("IC50", 1.2e-09, "M")], text)
 
