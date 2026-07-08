@@ -53,9 +53,13 @@ class OntologyTest(unittest.TestCase):
         self.assertEqual(len(matches), 1)
         self.assertEqual(matches[0].concept.id, "BEA:disease:nsclc")
 
-    def test_hyphen_boundary_prevents_partial_match(self) -> None:
-        # "EGFR" embedded in "EGFR-mutant" should not link the bare gene here.
-        self.assertNotIn("BEA:gene:egfr", self.ontology.concept_ids("EGFR-mutant"))
+    def test_hyphen_boundaries(self) -> None:
+        # A hyphenated suffix descriptor still denotes the gene -> it links.
+        self.assertIn("BEA:gene:egfr", self.ontology.concept_ids("EGFR-mutant tumors"))
+        # A hyphen PREFIX that qualifies the entity away does not link it.
+        self.assertNotIn("BEA:gene:egfr", self.ontology.concept_ids("non-EGFR pathways"))
+        # A run-on token (no hyphen) still does not partial-match.
+        self.assertNotIn("BEA:gene:egfr", self.ontology.concept_ids("EGFRvIII variant"))
 
     def test_generalizes_beyond_oncology(self) -> None:
         ids = self.ontology.concept_ids("salbutamol targets the beta-2 adrenergic receptor")
@@ -457,7 +461,7 @@ class MoaExtractionTest(unittest.TestCase):
         # future fix to a documented limitation forces this test to be updated.
         results = evaluate_stress(ROOT / "data" / "evaluation_stress.jsonl")
         handled = {r.id for r in results if r.handled}
-        self.assertEqual(handled, {"ss-001", "ss-002"})
+        self.assertEqual(handled, {"ss-001", "ss-002", "ss-003"})
         self.assertEqual(len(results), 5)
 
 

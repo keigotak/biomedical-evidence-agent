@@ -6,11 +6,14 @@ from pathlib import Path
 
 from .schemas import Concept, ConceptMatch
 
-# Concept surface forms are matched on token boundaries that also treat hyphens
-# as separators, so ``EGFR`` inside ``EGFR-mutant`` is not falsely linked and a
-# full form like ``non-small cell lung cancer`` is matched as one span.
+# Surface forms are matched on token boundaries. The LEFT boundary also treats a
+# hyphen as a separator, so a prefix that negates or qualifies away the entity
+# (``non-EGFR``, ``non-small cell lung cancer`` as one span) does not falsely link
+# the embedded token. The RIGHT boundary allows a trailing hyphen, so a hyphenated
+# suffix descriptor that still denotes the entity (``EGFR-mutant``, ``BRAF-V600E``,
+# ``TP53-null``) DOES link it — the asymmetry mirrors how hyphenated compounds read.
 _BOUNDARY_LEFT = r"(?<![\w-])"
-_BOUNDARY_RIGHT = r"(?![\w-])"
+_BOUNDARY_RIGHT = r"(?!\w)"
 
 
 def default_ontology_path() -> Path:
