@@ -139,7 +139,8 @@ On real papers this returns `well-supported` with verbatim quotes from actual tr
 PYTHONPATH=src python experiments/hypothesis_stress_test.py \
   --claim "BRAF V600E melanoma is associated with response to targeted inhibitor treatment."
 
-# Advocate vs skeptic debate the claim; a judge rules (grounded citations only)
+# Advocate vs skeptic debate the claim; a judge rules (grounded citations only).
+# Add --mode claude to run all three agents on the real API (llm extra + key).
 PYTHONPATH=src python experiments/reviewer_duel.py \
   --claim "BRAF V600E melanoma is associated with response to targeted inhibitor treatment."
 ```
@@ -169,7 +170,8 @@ PYTHONPATH=src python experiments/reviewer_duel.py \
 │   ├── example_claim_audit_il17a.md  # Non-oncology audit (IL-17A / fibrosis)
 │   ├── example_claim_audit_pubmed.md # Live-PubMed audit snapshot (real papers)
 │   ├── example_claim_audit_claude_reviewer.md # Real Claude reviewer critique
-│   └── example_reviewer_duel.md   # Advocate vs skeptic debate transcript
+│   ├── example_reviewer_duel.md   # Advocate vs skeptic debate transcript (mock)
+│   └── example_reviewer_duel_claude.md # Same debate on real Claude (3 agents)
 ├── experiments/                   # Side modules; do not affect the main demo
 │   ├── hypothesis_stress_test.py  # Multi-angle claim stress test
 │   └── reviewer_duel.py           # Advocate vs skeptic debate + judge

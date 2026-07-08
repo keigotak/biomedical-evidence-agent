@@ -26,12 +26,19 @@ PYTHONPATH=src python experiments/hypothesis_stress_test.py \
   conflicts / overclaims / gaps, and the judge weighs both against the
   tier-weighted verdict. Every quote either side cites is re-checked against its
   source and dropped if it is not verbatim, so neither debater can win on a
-  fabricated citation. Offline mock agents by default; the same shapes accept a
-  Claude-backed responder.
+  fabricated citation. Offline mock agents by default (`--mode mock`); pass
+  `--mode claude` to run all three agents on the real API (needs the `llm` extra
+  + `ANTHROPIC_API_KEY`). A saved real-Claude transcript is in
+  [`../outputs/example_reviewer_duel_claude.md`](../outputs/example_reviewer_duel_claude.md)
+  — there the judge distinguishes "association with response" from "durable
+  response" and rules for the advocate, a call the deterministic mock doesn't make.
+
+  ```bash
+  PYTHONPATH=src python experiments/reviewer_duel.py --mode claude \
+    --claim "BRAF V600E melanoma is associated with response to targeted inhibitor treatment."
+  ```
 
 ## Ideas parked here (not yet built)
 
 - **Evidence map UI** — a visual map of which sentence supports which part of the
   claim (belongs in the Streamlit app, not here).
-- **Claude-backed duel** — wire `reviewer_duel` agents to real Anthropic
-  responders (advocate/skeptic/judge system prompts) behind the `llm` extra.
