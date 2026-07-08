@@ -22,3 +22,7 @@
 {"id":"BEA:disease:colorectal_cancer","type":"disease","canonical":"colorectal cancer","surface_forms":["colorectal cancer"],"xrefs":{"mesh":"D015179"}}
 {"id":"BEA:disease:solid_tumor","type":"disease","canonical":"solid tumor","surface_forms":["solid tumor","solid tumors"],"xrefs":{}}
 {"id":"BEA:disease:inflammatory_disease","type":"disease","canonical":"inflammatory disease","surface_forms":["inflammatory disease","inflammatory diseases"],"xrefs":{"mesh":"D007249"}}
+{"id": "BEA:gene:il17a", "type": "gene", "canonical": "IL17A", "surface_forms": ["IL17A", "IL-17A", "interleukin 17A", "interleukin-17A"], "xrefs": {"uniprot": "Q16552", "hgnc": "HGNC:5981"}}
+{"id": "BEA:drug:secukinumab", "type": "drug", "canonical": "secukinumab", "surface_forms": ["secukinumab", "Cosentyx", "AIN457"], "xrefs": {"chembl": "CHEMBL1743007", "mesh": "D000077548"}, "targets": ["BEA:gene:il17a"]}
+{"id": "BEA:disease:systemic_sclerosis", "type": "disease", "canonical": "systemic sclerosis", "surface_forms": ["systemic sclerosis", "scleroderma", "SSc"], "xrefs": {"mesh": "D012595"}}
+{"id": "BEA:disease:fibrosis", "type": "disease", "canonical": "fibrosis", "surface_forms": ["fibrosis", "tissue fibrosis"], "xrefs": {"mesh": "D005355"}}

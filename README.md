@@ -78,6 +78,14 @@ python -m biomedical_evidence_agent.cli \
   --top-k 5 --report claim-audit --reviewer mock
 ```
 
+It generalizes beyond oncology — the same audit works on an immunology / fibrosis claim, which comes out `contested` (one supporting, one conflicting clinical source):
+
+```bash
+python -m biomedical_evidence_agent.cli \
+  --claim "IL-17A blockade may reduce fibrosis progression in systemic sclerosis." \
+  --top-k 5 --report claim-audit --reviewer mock
+```
+
 Add `--json` for the machine-readable report, `--reviewer claude` for a Claude-backed critique (needs the `llm` extra + `ANTHROPIC_API_KEY`), or `--source pubmed` to audit against public PubMed title/abstract metadata.
 
 **Plain evidence card** (the default `--report evidence-card`) and **target dossier** (`--target EGFR`) are still available for the underlying stack.
@@ -114,8 +122,10 @@ PYTHONPATH=src python experiments/reviewer_duel.py \
 │   ├── hackathon_demo.md          # 2-minute demo script
 │   └── example_output.md          # Example evidence cards
 ├── outputs/
-│   ├── example_claim_audit.md     # Saved Claim Audit Report (demo artifact)
-│   └── example_claim_audit.json   # Same report as JSON
+│   ├── example_claim_audit.md     # Saved Claim Audit Report (BRAF, demo artifact)
+│   ├── example_claim_audit.json   # Same report as JSON
+│   ├── example_claim_audit_il17a.md  # Non-oncology audit (IL-17A / fibrosis)
+│   └── example_reviewer_duel.md   # Advocate vs skeptic debate transcript
 ├── experiments/                   # Side modules; do not affect the main demo
 │   ├── hypothesis_stress_test.py  # Multi-angle claim stress test
 │   └── reviewer_duel.py           # Advocate vs skeptic debate + judge

@@ -41,9 +41,9 @@ CORPUS_PATH = Path(__file__).resolve().parent / "data" / "sample_corpus.jsonl"
 
 EXAMPLE_CLAIMS = [
     "BRAF V600E melanoma is associated with response to targeted inhibitor treatment.",
+    "IL-17A blockade may reduce fibrosis progression in systemic sclerosis.",
     "EGFR variants are associated with response to TKI in NSCLC.",
     "TP53 mutation definitively cures colorectal cancer with salbutamol.",
-    "Osimertinib inhibits EGFR in non-small cell lung cancer.",
 ]
 
 _VERDICT_COLOR = {

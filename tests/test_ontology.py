@@ -129,24 +129,24 @@ class LLMExtractorTest(unittest.TestCase):
         from biomedical_evidence_agent.extraction import LLMClaimExtractor
 
         def responder(claim, record):
+            # One verbatim quote (the record's first sentence) and one hallucinated.
+            verbatim = record.abstract.split(".")[0]
             return [
-                {"quote": "This sample record describes BRAF V600E melanoma",
-                 "stance": "supports", "rationale": "verbatim"},
+                {"quote": verbatim, "stance": "supports", "rationale": "verbatim"},
                 {"quote": "BRAF cures melanoma in all patients",
                  "stance": "supports", "rationale": "hallucinated"},
             ]
 
         ext = LLMClaimExtractor(responder=responder, ontology=self.ontology)
-        claims, proposed = ext.extract_with_stats(
-            "BRAF melanoma response", self._ranked("BRAF melanoma response")
-        )
+        ranked = self._ranked("BRAF melanoma response")
+        claims, proposed = ext.extract_with_stats("BRAF melanoma response", ranked)
         self.assertEqual(proposed, 2)
         self.assertEqual(len(claims), 1)
-        # Kept claim's span points back to the verbatim source text.
+        # Kept claim's span points back to the verbatim text of ITS source record,
+        # whichever record retrieval ranked first.
         kept = claims[0]
-        self.assertEqual(
-            self.records[1].abstract[kept.start:kept.end], kept.text
-        )
+        source = next(r for r in self.records if r.id == kept.source_id)
+        self.assertEqual(source.abstract[kept.start:kept.end], kept.text)
 
     def test_grounded_quote_gets_a_valid_span_and_stance(self) -> None:
         from biomedical_evidence_agent.extraction import (

@@ -50,6 +50,18 @@ python -m biomedical_evidence_agent.cli --claim "..." --report claim-audit --jso
 (`--reviewer claude`) — but even then, every quote it cites is re-checked against
 the source, so it can't hallucinate a citation."
 
+## Demo 4 — it generalizes beyond oncology (20s)
+
+```bash
+python -m biomedical_evidence_agent.cli \
+  --claim "IL-17A blockade may reduce fibrosis progression in systemic sclerosis." \
+  --top-k 5 --report claim-audit --reviewer mock
+```
+
+"Same tool, a totally different area — immunology and fibrosis. It finds one
+supporting and one conflicting clinical source and calls it **contested**. The
+grounding backbone (concept ids, verbatim citations) is domain-agnostic."
+
 ## The close (15s)
 
 "I built a claim-auditing layer for life sciences research. Instead of asking
