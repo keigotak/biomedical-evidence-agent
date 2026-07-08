@@ -176,7 +176,8 @@ PYTHONPATH=src python experiments/compare_claims.py
 │   └── example_output.md          # Example evidence cards
 ├── scripts/
 │   ├── render_hero.py             # Regenerates docs/hero.svg from a real audit
-│   └── eval_llm_ablation.py       # Extractor ablation on the real Claude backend
+│   ├── eval_llm_ablation.py       # Extractor ablation on the real Claude backend
+│   └── demo.sh                    # One-command paced driver for the demo video
 ├── outputs/
 │   ├── example_claim_audit.md     # Saved Claim Audit Report (BRAF, demo artifact)
 │   ├── example_claim_audit.json   # Same report as JSON

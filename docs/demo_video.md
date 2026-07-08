@@ -8,6 +8,18 @@ Claude-backed run, but both have a no-setup fallback.
 **Before recording:** big terminal font, `cd` into the repo, and pre-clear the
 screen. Optional: `docker compose up --build` in a second window for the UI beat.
 
+**Easiest path — one command, paced by you:**
+
+```bash
+bash scripts/demo.sh        # runs all six beats; press enter between each while you narrate
+```
+
+`scripts/demo.sh` prints a header for each beat, runs the exact command below,
+and waits for enter — so you never type on camera, and the PubMed and Claude
+beats read saved snapshots (no network, no API key). The script and this
+storyboard stay in lock-step. The rest of this file is the narration and what to
+point at.
+
 ---
 
 ## 0:00–0:15 — Hook
