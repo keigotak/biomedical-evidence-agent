@@ -19,7 +19,7 @@ from pathlib import Path
 
 import streamlit as st
 
-from biomedical_evidence_agent.audit import audit_card
+from biomedical_evidence_agent.audit import audit_card, claim_concept_coverage
 from biomedical_evidence_agent.evidence import build_evidence_card
 from biomedical_evidence_agent.report import audit_json, render_claim_audit
 from biomedical_evidence_agent.retrieval import (
@@ -163,6 +163,23 @@ def _render(card, audit, critique) -> None:
     c2.metric("Conflicting sources", v.conflict_sources if v else 0)
     c3.metric("Citation faithfulness", f"{audit.citation_faithfulness * 100:.0f}%")
     c4.metric("Records retrieved", len(card.retrieved))
+
+    coverage = claim_concept_coverage(card)
+    if coverage:
+        st.subheader("Evidence Map — coverage by claim entity")
+        st.table(
+            [
+                {
+                    "entity": e["name"],
+                    "type": e["type"],
+                    "supporting": e["supports"],
+                    "conflicting": e["conflicts"],
+                    "indirect": e["indirect"],
+                    "sources": ", ".join(e["sources"]) or "⚠ none",
+                }
+                for e in coverage
+            ]
+        )
 
     if audit.findings:
         st.subheader("Audit flags")
