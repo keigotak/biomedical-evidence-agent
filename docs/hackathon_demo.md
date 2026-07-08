@@ -50,6 +50,18 @@ python -m biomedical_evidence_agent.cli --claim "..." --report claim-audit --jso
 (`--reviewer claude`) — but even then, every quote it cites is re-checked against
 the source, so it can't hallucinate a citation."
 
+## Demo 3.5 — it works on real PubMed, not just toy data (25s)
+
+```bash
+python -m biomedical_evidence_agent.cli --source pubmed \
+  --claim "BRAF V600E melanoma is associated with response to targeted inhibitor treatment." \
+  --top-k 5 --report claim-audit --reviewer mock
+```
+
+"Same tool, live PubMed. It pulls real abstracts and returns **well-supported**
+with verbatim quotes from actual trials — FDA-approved BRAF/MEK combinations —
+each citation checked against its source. The grounding isn't a toy-data trick."
+
 ## Demo 4 — it generalizes beyond oncology (20s)
 
 ```bash
