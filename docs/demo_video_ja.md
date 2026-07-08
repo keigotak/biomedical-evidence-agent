@@ -62,35 +62,39 @@ python -m biomedical_evidence_agent.cli \
 
 ---
 
-## ④ 1:30–2:00 汎化＋実文献
+## ④ 1:30–2:05 本番：実 PubMed（花形）
 
-**画面**：比較表、続いて PubMed スナップショット。
+**画面**：3領域の比較表を一瞬映してから、vitamin D の監査
+（[`outputs/example_claim_audit_vitamin_d_pubmed.md`](../outputs/example_claim_audit_vitamin_d_pubmed.md)、
+キーがあれば下記をライブ実行）。
 
 ```bash
-python experiments/compare_claims.py
+python -m biomedical_evidence_agent.cli --source pubmed \
+  --claim "Vitamin D supplementation reduces the risk of cancer." \
+  --top-k 6 --report claim-audit --extractor llm --reviewer claude
 ```
 
-> 「同じツールが、**腫瘍・免疫・神経の3領域**で動きます——contested が2つ、
-> well-supported が1つ、overclaim が1つ、**一覧で**把握できます。」
+指す：**Audit Verdict: contradicted** と **VITAL** の反証行
+（`hazard ratio, 0.96, 95% CI 0.88–1.06; P=0.47`）。
 
-続いて [`outputs/example_claim_audit_pubmed.md`](../outputs/example_claim_audit_pubmed.md)
-を開く（ネットが使えるなら `--source pubmed` を実行）。
-
-> 「しかも**トイデータ専用ではありません**。実際の **PubMed** に向ければ、
-> 本物の論文を監査し、**実試験からの逐語引用付き**で well-supported を返します。」
+> 「同じツールが3領域で動きます——が、本番はここ。**実際の PubMed** に向けます。
+> *“ビタミンDはがんリスクを下げる”*——多くの人が信じている主張です。監査結果は
+> **contradicted（反証されている）**。ランドマークの **VITAL 試験**の“有意差なし”
+> という結果を、**逐語で**引いてきます。トイデータではなく**実文献**。しかも
+> 雑多な実抄録からの抽出は **Claude** が担っています。」
 
 ---
 
-## ⑤ 2:00–2:35 Built with Claude
+## ⑤ 2:05–2:40 Built with Claude：専門家級のレビュー
 
-**画面**：[`outputs/example_claim_audit_claude_reviewer.md`](../outputs/example_claim_audit_claude_reviewer.md)
-を開く（キーがあれば `--reviewer claude`）。BRIM-3 の行を強調。
+**画面**：同じ vitamin D スナップショットの **Reviewer Critique** セクション。
 
-> 「このレビュアーは **Claude 自身**です。カードを**懐疑的に読み直し**、ここでは
-> “ヘッジした言い回し”を指摘し、**“durable（持続的）”と“initial（初期）”の反応を
-> 区別**し、決定的な **BRIM-3 試験**を次に当たるべき文献として挙げます。そして
-> Claude が引く引用は**すべて出典と照合される**——だから**引用を捏造できません**。
-> BRIM-3 の提案に引用が付いていないのは、その論文がコーパスに無いからです。」
+> 「レビュアーは **Claude**。同じエビデンスを**専門家のように**読み直します。
+> がん**罹患（incidence）**については“反証”に同意しつつ、ルールが見落とした
+> ニュアンス——がん**死亡（mortality）**はむしろ有益な可能性があり、あるソースが
+> 誤ってラベル付けされている——を指摘します。さらに次に当たるべき試験として
+> **D-Health 試験**を名指し。そして引く引用は**すべて出典と照合される**——
+> だから**引用を捏造できません**。」
 
 *(任意：`experiments/reviewer_duel.py --mode claude` = advocate・skeptic・judge
 の三者が論戦、いずれも grounded。)*

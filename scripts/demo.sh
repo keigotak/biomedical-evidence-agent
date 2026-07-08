@@ -36,12 +36,12 @@ banner "3/6  Three therapeutic areas at a glance"
 python experiments/compare_claims.py
 pause
 
-banner "4/6  Real PubMed — audits actual papers (saved snapshot)"
-sed -n '5,40p' outputs/example_claim_audit_pubmed.md
+banner "4/6  Real PubMed — 'Vitamin D reduces cancer risk' -> CONTRADICTED by the VITAL trial (saved snapshot)"
+sed -n '10,37p' outputs/example_claim_audit_vitamin_d_pubmed.md
 pause
 
-banner "5/6  Built with Claude — a grounded skeptic reviewer (saved snapshot)"
-sed -n '5,45p' outputs/example_claim_audit_claude_reviewer.md
+banner "5/6  Built with Claude — the reviewer catches incidence-vs-mortality (saved snapshot)"
+sed -n '50,57p' outputs/example_claim_audit_vitamin_d_pubmed.md
 pause
 
 banner "6/6  Honest evaluation — 7 streams, stress 8/9, guard ablation"

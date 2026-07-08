@@ -75,36 +75,39 @@ addresses this entity`.
 
 ---
 
-## 1:30–2:00 — Generalization + real literature
+## 1:30–2:05 — The real test: live PubMed (the hero)
 
-**On screen:** the comparison table, then the PubMed snapshot.
+**On screen:** a quick flash of the 3-domain comparison table, then the vitamin D
+audit — the snapshot [`outputs/example_claim_audit_vitamin_d_pubmed.md`](../outputs/example_claim_audit_vitamin_d_pubmed.md)
+(or run it live with a key):
 
 ```bash
-python experiments/compare_claims.py
+python -m biomedical_evidence_agent.cli --source pubmed \
+  --claim "Vitamin D supplementation reduces the risk of cancer." \
+  --top-k 6 --report claim-audit --extractor llm --reviewer claude
 ```
 
-> "Same tool across **oncology, immunology, and neurology** — three areas, one
-> auditor: two contested, one well-supported, one overclaim, at a glance."
+Point at: **Audit Verdict: contradicted** and the **VITAL** conflicting line
+(`hazard ratio, 0.96, 95% CI 0.88–1.06; P=0.47`).
 
-Then open [`outputs/example_claim_audit_pubmed.md`](../outputs/example_claim_audit_pubmed.md)
-(or run `--source pubmed` live if the network is up):
-
-> "And it's not toy-only. Point it at **live PubMed** and it audits real papers —
-> well-supported, with verbatim quotes from actual trials."
+> "Same tool across three areas — but here's the real test: point it at **live
+> PubMed**. *Vitamin D reduces cancer risk* — a claim a lot of people believe. The
+> auditor grades it **contradicted**, and pulls the landmark **VITAL trial's**
+> null result, quoted **verbatim**. This is real literature, not toy data — and
+> Claude does the extraction from messy real abstracts."
 
 ---
 
-## 2:00–2:35 — Built with Claude
+## 2:05–2:40 — Built with Claude: expert-level review
 
-**On screen:** open [`outputs/example_claim_audit_claude_reviewer.md`](../outputs/example_claim_audit_claude_reviewer.md)
-(or run `--reviewer claude` with a key). Highlight the BRIM-3 line.
+**On screen:** the Reviewer Critique section of the same vitamin D snapshot.
 
-> "The reviewer is **Claude itself**, re-reading the card as a skeptic. Here it
-> flags the hedged wording, distinguishes *durable* from *initial* response, and
-> points to the pivotal **BRIM-3 trial** as the next source. And every quote
-> Claude cites is **re-checked against the source** — so it can't hallucinate a
-> citation. Notice its BRIM-3 suggestion carries no quote, because that trial
-> isn't in the corpus."
+> "And the reviewer is **Claude**, reading the same evidence as an expert. It
+> agrees the claim is contradicted for cancer *incidence* — but catches a nuance
+> the rules missed: cancer *mortality* may actually benefit, and one source was
+> mislabeled. It even names the next trial to pull — the **D-Health trial**. And
+> every quote it cites is **re-checked against the source**, so it can't fabricate
+> a citation."
 
 *(Optional flourish: `experiments/reviewer_duel.py --mode claude` — an advocate,
 a skeptic, and a judge, all grounded.)*

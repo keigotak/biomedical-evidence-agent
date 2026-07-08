@@ -44,6 +44,23 @@ contested (strength +0.00) — supports: 1×clinical; conflicts: 1×clinical
 
 Note what a smooth answer would have hidden: the claim is **contested**, not confirmed; both cited quotes are verified verbatim; and the tool says exactly what evidence would move it.
 
+### It runs on real literature, not just toy data
+
+Point it at live PubMed with the real Claude extractor and reviewer:
+
+```bash
+python -m biomedical_evidence_agent.cli --source pubmed \
+  --claim "Vitamin D supplementation reduces the risk of cancer." \
+  --top-k 6 --report claim-audit --extractor llm --reviewer claude
+```
+
+A widely-held claim — and the tool grades it **`contradicted`**, citing the
+landmark **VITAL trial's** null primary result *verbatim* (`HR 0.96, 95% CI
+0.88–1.06, P=0.47`). Then the Claude reviewer catches a nuance the rules miss —
+cancer *incidence* (null) vs *mortality* (a possible benefit) — and names the
+**D-Health trial** as the next source, every quote re-grounded against its
+abstract. Full snapshot: [`outputs/example_claim_audit_vitamin_d_pubmed.md`](outputs/example_claim_audit_vitamin_d_pubmed.md).
+
 ## Core Workflow
 
 **claim → retrieval → evidence extraction → stance labeling → citation / overclaim / contradiction audit → reviewer critique → Claim Audit Report**
@@ -171,7 +188,8 @@ PYTHONPATH=src python experiments/compare_claims.py
 │   ├── differentiation.md         # Why this is a claim auditor, not a search tool
 │   ├── evaluation.md              # Eval design, n per stream, honest caveats + stress set
 │   ├── hackathon_demo.md          # 2-minute live-demo script
-│   ├── demo_video.md              # 3-minute demo-video storyboard + narration
+│   ├── demo_video.md              # 3-minute demo-video storyboard (EN)
+│   ├── demo_video_ja.md           # 3-minute demo-video storyboard (JA)
 │   ├── hero.svg                   # README hero (rendered from real output)
 │   └── example_output.md          # Example evidence cards
 ├── scripts/
