@@ -6,6 +6,10 @@
 
 It is **not** a literature search engine. You give it a specific biological or translational claim, and instead of returning a smooth answer, it audits the claim: it exposes the supporting and conflicting evidence, checks that every citation is verbatim in its source, flags overclaims and contradictions, surfaces retrieval gaps, and tells you what would change the verdict.
 
+![A BioClaim Auditor Claim Audit Report: the claim "BRAF V600E melanoma is associated with response to targeted inhibitor treatment" graded CONTESTED, an Evidence Map showing BRAF, melanoma and targeted-therapy each with one supporting and one conflicting source, an audit line reading citations 2/2 verbatim plus a contradiction flag, and a "what would change my mind" note.](docs/hero.svg)
+
+<sub>Rendered from real audit output by [`scripts/render_hero.py`](scripts/render_hero.py) — the CLI/UI produce the same thing.</sub>
+
 ```bash
 python -m biomedical_evidence_agent.cli \
   --claim "BRAF V600E melanoma is associated with response to targeted inhibitor treatment." \
@@ -163,7 +167,10 @@ PYTHONPATH=src python experiments/reviewer_duel.py \
 │   ├── architecture.md            # Workflow and component design
 │   ├── differentiation.md         # Why this is a claim auditor, not a search tool
 │   ├── hackathon_demo.md          # 2-minute demo script
+│   ├── hero.svg                   # README hero (rendered from real output)
 │   └── example_output.md          # Example evidence cards
+├── scripts/
+│   └── render_hero.py             # Regenerates docs/hero.svg from a real audit
 ├── outputs/
 │   ├── example_claim_audit.md     # Saved Claim Audit Report (BRAF, demo artifact)
 │   ├── example_claim_audit.json   # Same report as JSON
