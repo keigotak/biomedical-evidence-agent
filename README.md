@@ -1,5 +1,8 @@
 # BioClaim Auditor
 
+[![CI](https://github.com/keigotak/biomedical-evidence-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/keigotak/biomedical-evidence-agent/actions/workflows/ci.yml)
+&nbsp;66 tests · 7-stream evaluation suite (all 1.000) · Python 3.10–3.12 · MIT
+
 > Product demo built on the `biomedical-evidence-agent` repo.
 
 **BioClaim Auditor is a Claude-powered claim-auditing tool for life sciences researchers.**
