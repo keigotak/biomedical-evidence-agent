@@ -6,13 +6,14 @@ from pathlib import Path
 
 from .schemas import Concept, ConceptMatch
 
-# Surface forms are matched on token boundaries. The LEFT boundary also treats a
-# hyphen as a separator, so a prefix that negates or qualifies away the entity
-# (``non-EGFR``, ``non-small cell lung cancer`` as one span) does not falsely link
-# the embedded token. The RIGHT boundary allows a trailing hyphen, so a hyphenated
-# suffix descriptor that still denotes the entity (``EGFR-mutant``, ``BRAF-V600E``,
-# ``TP53-null``) DOES link it — the asymmetry mirrors how hyphenated compounds read.
-_BOUNDARY_LEFT = r"(?<![\w-])"
+# Surface forms are matched on token boundaries that read hyphenated compounds
+# the way a person does. A preceding word char never matches (no run-on like
+# ``xEGFR``). A preceding hyphen is allowed — so a qualifying prefix that keeps the
+# entity (``anti-EGFR``, ``pan-EGFR``) links it — EXCEPT the negating prefixes
+# ``non-`` / ``un-`` (``non-EGFR`` means *not* EGFR), which stay blocked. The RIGHT
+# side allows a trailing hyphen, so a suffix descriptor that still denotes the
+# entity (``EGFR-mutant``, ``BRAF-V600E``, ``TP53-null``) links it too.
+_BOUNDARY_LEFT = r"(?<!\w)(?<!non-)(?<!un-)"
 _BOUNDARY_RIGHT = r"(?!\w)"
 
 

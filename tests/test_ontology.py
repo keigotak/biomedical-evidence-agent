@@ -54,12 +54,15 @@ class OntologyTest(unittest.TestCase):
         self.assertEqual(matches[0].concept.id, "BEA:disease:nsclc")
 
     def test_hyphen_boundaries(self) -> None:
+        egfr = "BEA:gene:egfr"
         # A hyphenated suffix descriptor still denotes the gene -> it links.
-        self.assertIn("BEA:gene:egfr", self.ontology.concept_ids("EGFR-mutant tumors"))
-        # A hyphen PREFIX that qualifies the entity away does not link it.
-        self.assertNotIn("BEA:gene:egfr", self.ontology.concept_ids("non-EGFR pathways"))
+        self.assertIn(egfr, self.ontology.concept_ids("EGFR-mutant tumors"))
+        # A qualifying prefix that keeps the entity (anti-/pan-) links it.
+        self.assertIn(egfr, self.ontology.concept_ids("anti-EGFR therapy"))
+        # A NEGATING prefix (non-/un-) means 'not EGFR' -> does not link.
+        self.assertNotIn(egfr, self.ontology.concept_ids("non-EGFR pathways"))
         # A run-on token (no hyphen) still does not partial-match.
-        self.assertNotIn("BEA:gene:egfr", self.ontology.concept_ids("EGFRvIII variant"))
+        self.assertNotIn(egfr, self.ontology.concept_ids("EGFRvIII variant"))
 
     def test_generalizes_beyond_oncology(self) -> None:
         ids = self.ontology.concept_ids("salbutamol targets the beta-2 adrenergic receptor")
@@ -471,8 +474,10 @@ class MoaExtractionTest(unittest.TestCase):
         # future fix to a documented limitation forces this test to be updated.
         results = evaluate_stress(ROOT / "data" / "evaluation_stress.jsonl")
         handled = {r.id for r in results if r.handled}
-        self.assertEqual(handled, {"ss-001", "ss-002", "ss-003", "ss-004", "ss-005"})
-        self.assertEqual(len(results), 7)  # ss-006/007 are current, documented limits
+        self.assertEqual(
+            handled, {"ss-001", "ss-002", "ss-003", "ss-004", "ss-005", "ss-006"}
+        )
+        self.assertEqual(len(results), 7)  # ss-007 (sci notation) is a documented limit
 
 
 class QuantRobustnessTest(unittest.TestCase):
