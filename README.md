@@ -72,6 +72,16 @@ lung cancer* as well-supported (it raised lung-cancer risk in ATBC/CARET) — wh
 the Claude extractor correctly flags it `contradicted`. Snapshot:
 [`outputs/example_pubmed_scan.md`](outputs/example_pubmed_scan.md).
 
+<p align="center">
+  <img src="docs/scan_shift.svg" alt="Verdict-shift chart: over 10 known claims on live PubMed, the deterministic rules and Claude agree on established oncology claims but diverge on debunked ones — and the rules dangerously grade beta-carotene-prevents-lung-cancer and vitamin-C-prevents-colds as well-supported, while Claude lands both on contradicted." width="820">
+</p>
+
+*Each row is one claim on live PubMed. The hollow ring is where the offline
+deterministic rules land the verdict; the filled dot is where Claude lands it.
+On established oncology they agree; on debunked claims the rules miss the evidence
+or — for beta-carotene and vitamin C — actively endorse it, and Claude pulls both
+to `contradicted`. Regenerate with `python scripts/render_scan_shift.py`.*
+
 ## Core Workflow
 
 **claim → retrieval → evidence extraction → stance labeling → citation / overclaim / contradiction audit → reviewer critique → Claim Audit Report**
@@ -202,9 +212,11 @@ PYTHONPATH=src python experiments/compare_claims.py
 │   ├── demo_video.md              # 3-minute demo-video storyboard (EN)
 │   ├── demo_video_ja.md           # 3-minute demo-video storyboard (JA)
 │   ├── hero.svg                   # README hero (rendered from real output)
+│   ├── scan_shift.svg             # Verdict-shift figure (det vs Claude, 10 claims)
 │   └── example_output.md          # Example evidence cards
 ├── scripts/
 │   ├── render_hero.py             # Regenerates docs/hero.svg from a real audit
+│   ├── render_scan_shift.py       # Regenerates docs/scan_shift.svg from the scan
 │   ├── eval_llm_ablation.py       # Extractor ablation on the real Claude backend
 │   ├── pubmed_scan.py             # Audit N real claims on live PubMed (det vs Claude)
 │   └── demo.sh                    # One-command paced driver for the demo video
