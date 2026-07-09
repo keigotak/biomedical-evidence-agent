@@ -191,6 +191,22 @@ class ReviewerTest(unittest.TestCase):
         self.assertEqual(len(critique.findings), 1)
         self.assertEqual(critique.findings[0].quote, "")
 
+    def test_anthropic_reviewer_without_key_raises_reviewer_unavailable(self) -> None:
+        # Regression: the SDK constructs fine without a key and only fails at call
+        # time, which surfaced as a raw traceback in the UI. The reviewer must fail
+        # fast and gracefully (ReviewerUnavailable) so callers can degrade cleanly.
+        import os
+        from unittest import mock
+
+        from biomedical_evidence_agent.reviewer import (
+            ReviewerUnavailable,
+            anthropic_reviewer,
+        )
+
+        with mock.patch.dict(os.environ, {}, clear=True):
+            with self.assertRaises(ReviewerUnavailable):
+                anthropic_reviewer()
+
 
 class ReportTest(unittest.TestCase):
     @classmethod

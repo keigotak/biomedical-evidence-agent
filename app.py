@@ -133,29 +133,39 @@ def main() -> None:
         height=80,
     )
     run = st.button("Audit claim", type="primary")
-    if not run:
-        return
-    if not claim.strip():
-        st.warning("Enter a claim to audit.")
-        return
 
-    try:
-        retrieved = _retrieve(claim, source, retriever_name, top_k)
-    except RuntimeError as exc:
-        st.error(str(exc))
-        return
+    # Compute only when the user clicks Audit, but persist the result so later
+    # reruns (opening an expander, clicking a download button, moving a slider)
+    # keep showing the report instead of blanking it. A failed run leaves the
+    # previous report in place rather than wiping the screen.
+    if run:
+        if not claim.strip():
+            st.warning("Enter a claim to audit.")
+        else:
+            try:
+                retrieved = _retrieve(claim, source, retriever_name, top_k)
+            except RuntimeError as exc:
+                st.error(str(exc))
+            else:
+                card = build_evidence_card(
+                    query=claim, retrieved=retrieved, claim=claim, source=source
+                )
+                audit = audit_card(card)
+                critique = None
+                if reviewer_name != "none":
+                    try:
+                        critique = review_card(
+                            card, audit, reviewer=_build_reviewer(reviewer_name)
+                        )
+                    except ReviewerUnavailable as exc:
+                        st.warning(
+                            f"Claude reviewer unavailable, continuing without a critique: {exc}"
+                        )
+                st.session_state["audit_result"] = (card, audit, critique)
 
-    card = build_evidence_card(query=claim, retrieved=retrieved, claim=claim, source=source)
-    audit = audit_card(card)
-
-    critique = None
-    if reviewer_name != "none":
-        try:
-            critique = review_card(card, audit, reviewer=_build_reviewer(reviewer_name))
-        except ReviewerUnavailable as exc:
-            st.warning(f"Claude reviewer unavailable, continuing without a critique: {exc}")
-
-    _render(card, audit, critique)
+    result = st.session_state.get("audit_result")
+    if result is not None:
+        _render(*result)
 
 
 def _render(card, audit, critique) -> None:

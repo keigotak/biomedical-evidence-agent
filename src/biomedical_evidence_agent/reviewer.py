@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from typing import Callable
 
 from .schemas import AuditReport, EvidenceCard, ReviewerCritique, ReviewFinding
@@ -185,6 +186,13 @@ def anthropic_reviewer(*, model: str = DEFAULT_MODEL, api_key: str | None = None
             "The Claude reviewer requires the optional 'llm' extra. "
             "Install it with: pip install '.[llm]'"
         ) from exc
+    # The SDK constructs happily without a key and only fails at call time, which
+    # would surface as a raw traceback in the UI. Check up front so a missing key
+    # degrades to a clean warning instead (mirrors extraction.anthropic_responder).
+    if not (api_key or os.environ.get("ANTHROPIC_API_KEY")):
+        raise ReviewerUnavailable(
+            "The Claude reviewer needs ANTHROPIC_API_KEY set (or pass api_key)."
+        )
     try:
         client = anthropic.Anthropic(api_key=api_key) if api_key else anthropic.Anthropic()
     except Exception as exc:  # pragma: no cover - depends on credential config
@@ -194,13 +202,16 @@ def anthropic_reviewer(*, model: str = DEFAULT_MODEL, api_key: str | None = None
 
     def respond(card: EvidenceCard, audit: AuditReport) -> dict:
         prompt = _render_review_prompt(card, audit)
-        message = client.messages.create(
-            model=model,
-            max_tokens=16000,
-            system=_SYSTEM_PROMPT,
-            output_config={"format": {"type": "json_schema", "schema": REVIEW_SCHEMA}},
-            messages=[{"role": "user", "content": prompt}],
-        )
+        try:
+            message = client.messages.create(
+                model=model,
+                max_tokens=16000,
+                system=_SYSTEM_PROMPT,
+                output_config={"format": {"type": "json_schema", "schema": REVIEW_SCHEMA}},
+                messages=[{"role": "user", "content": prompt}],
+            )
+        except anthropic.APIError as exc:  # auth/rate/connection — degrade, don't crash
+            raise ReviewerUnavailable(f"Claude reviewer call failed: {exc}") from exc
         text = next((block.text for block in message.content if block.type == "text"), "")
         data = json.loads(text) if text else {}
         data["reviewer"] = "claude"
