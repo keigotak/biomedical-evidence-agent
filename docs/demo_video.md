@@ -99,13 +99,15 @@ Point at: **Audit Verdict: contradicted** and the **VITAL** conflicting line
 **On screen:** now full-screen [`docs/scan_shift.svg`](scan_shift.svg) (the figure
 under the README scale callout — hold it for 8–10s).
 
-> "And it's not a one-off. Here are **ten well-known claims** audited on live
+> "And it's not a one-off. Here are **sixteen well-known claims** audited on live
 > PubMed at once. The hollow ring is the offline deterministic rules; the filled
-> dot is **Claude**. On established oncology they agree — but on messy real claims
-> the rules break: they grade *beta-carotene prevents lung cancer* and *vitamin C
-> prevents colds* as **well-supported**, the exact opposite of the truth. Claude
-> reads the abstracts and pulls both to **contradicted**. That's what 'Built with
-> Claude' buys here — a **measurable** difference, not a gimmick."
+> dot is **Claude**. On established claims they agree — but on messy real ones the
+> rules break: in **three** rows they grade a debunked claim as **well-supported**
+> — *beta-carotene prevents lung cancer*, *vitamin C prevents colds*, *arthroscopic
+> knee surgery beats placebo* — the exact opposite of the truth. Claude reads the
+> abstracts and pulls all three to **contradicted**, and even rescues the ones the
+> rules missed. That's what 'Built with Claude' buys here — a **measurable**
+> difference, not a gimmick."
 
 ---
 
@@ -143,7 +145,7 @@ then a safety card.
 ## Shortest zero-setup path (if you only have a terminal)
 
 1. Demo 1 command → 2. Demo 2 command → 3. open the PubMed / Claude-reviewer
-snapshots in `outputs/` → 4. open `docs/scan_shift.svg` (the 10-claim figure) →
+snapshots in `outputs/` → 4. open `docs/scan_shift.svg` (the 16-claim figure) →
 5. `… .evaluation | tail`. That is the full 3 minutes with no Docker and no API key.
 
 ## Timing cheat-sheet
@@ -153,6 +155,6 @@ snapshots in `outputs/` → 4. open `docs/scan_shift.svg` (the 10-claim figure) 
 | Hook | 0:15 | what it is / isn't |
 | Contested claim | 0:40 | verdict, citations, contradiction, WWCMM |
 | Overclaim | 0:25 | overclaim flag + entity coverage gap |
-| PubMed + scale figure | 0:45 | vitamin D contradicted + 10-claim shift (Claude necessity) |
+| PubMed + scale figure | 0:45 | vitamin D contradicted + 16-claim shift (Claude necessity) |
 | Built with Claude | 0:30 | grounded reviewer, no fabricated citation |
 | Close | 0:25 | honest eval + pitch + safety |

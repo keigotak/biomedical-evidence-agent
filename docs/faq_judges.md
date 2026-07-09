@@ -18,13 +18,17 @@ disagreement, and the gaps a smooth paragraph hides.
 ### "Why do you need Claude? Couldn't rules do this?"
 
 **We measured exactly this, and rules fail dangerously.** `scripts/pubmed_scan.py`
-runs ten known claims on live PubMed two ways. On clean oncology phrasing the
-deterministic rules match Claude. On messy real claims they break — grading
-*beta-carotene prevents lung cancer* and *vitamin C prevents colds* as
-**well-supported**, the opposite of the literature. Claude reads the abstracts and
-lands both on **contradicted**. The figure is `docs/scan_shift.svg`; the snapshot
-is `outputs/example_pubmed_scan.md`. That's the case for Claude — quantified, not
-asserted.
+runs sixteen known claims on live PubMed two ways. On clean oncology phrasing the
+deterministic rules match Claude. On messy real claims they break — in **three**
+rows grading a debunked claim (*beta-carotene prevents lung cancer*, *vitamin C
+prevents colds*, *arthroscopic knee surgery beats placebo*) as **well-supported**,
+the opposite of the literature. Claude reads the abstracts and lands all three on
+**contradicted**, and it *rescues* claims the rules missed (finding the STEP
+evidence for *semaglutide reduces body weight*). It also doesn't bluff: where the
+retrieved abstracts were thin (*statins reduce cardiovascular events*) it returned
+`insufficient` rather than inventing support. The figure is `docs/scan_shift.svg`;
+the snapshot is `outputs/example_pubmed_scan.md`. That's the case for Claude —
+quantified, not asserted.
 
 ### "If Claude extracts the evidence, how do I know it isn't hallucinating?"
 

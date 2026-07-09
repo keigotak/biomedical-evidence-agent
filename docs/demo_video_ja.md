@@ -86,11 +86,13 @@ python -m biomedical_evidence_agent.cli --source pubmed \
 **画面**：ここで [`docs/scan_shift.svg`](scan_shift.svg) をフルスクリーンで映す
 （README のスケール callout 直下。8〜10秒）。
 
-> 「しかも一発芸ではありません。**10件の有名な主張**を実 PubMed でまとめて監査した
+> 「しかも一発芸ではありません。**16件の有名な主張**を実 PubMed でまとめて監査した
 > 図です。中空リングがオフラインの決定論ルール、塗りつぶしが **Claude**。確立した
-> 腫瘍領域では**一致**しますが、雑多な実主張ではルールが破綻します——
-> **“β-カロテンが肺がんを予防”“ビタミンCが風邪を予防”を well-supported と誤判定**
-> （実際は真逆）。Claude は抄録を読み、両方を **contradicted** まで引き戻します。
+> 主張では**一致**しますが、雑多な実主張ではルールが破綻します——**3行**で否定済みの
+> 主張を well-supported と誤判定します（**“β-カロテンが肺がんを予防”“ビタミンCが
+> 風邪を予防”“変形性膝関節症の関節鏡手術は偽薬に勝る”**、いずれも実際は真逆）。
+> Claude は抄録を読み、3件すべてを **contradicted** に引き戻し、ルールが取りこぼした
+> 主張（セマグルチドの減量効果）はむしろ **well-supported** に救い上げます。
 > “Built with Claude”は飾りではなく、**測定できる差**です。」
 
 ---
@@ -131,7 +133,7 @@ extractor ablation）または [`docs/evaluation.md`](evaluation.md)、最後に
 | フック | 0:15 | 何であって何でないか |
 | contested な主張 | 0:40 | 判定・引用・矛盾・WWCMM |
 | overclaim | 0:25 | 過剰主張フラグ＋網羅ギャップ |
-| PubMed＋スケール図 | 0:45 | vitamin D 反証＋10件シフト図（Claude必然性） |
+| PubMed＋スケール図 | 0:45 | vitamin D 反証＋16件シフト図（Claude必然性） |
 | Built with Claude | 0:30 | grounded なレビュアー・捏造引用不可 |
 | 締め | 0:25 | 誠実な評価＋ピッチ＋安全 |
 

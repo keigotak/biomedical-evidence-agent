@@ -49,6 +49,12 @@ ROWS = [
     ("Vitamin C → prevents the common cold", "well-supported", "contradicted"),
     ("Ivermectin → lower COVID-19 mortality", "insufficient", "contradicted"),
     ("Hydroxychloroquine → lower COVID-19 mortality", "insufficient", "contradicted"),
+    ("MMR vaccine → causes autism", "insufficient", "contradicted"),
+    ("HRT → prevents coronary heart disease", "insufficient", "contradicted"),
+    ("Arthroscopic knee surgery → beats placebo", "well-supported", "contradicted"),
+    ("Statins → fewer cardiovascular events", "insufficient", "insufficient"),
+    ("Semaglutide → lower body weight (obesity)", "insufficient", "well-supported"),
+    ("Aducanumab → slows Alzheimer's decline", "insufficient", "well-supported"),
 ]
 
 # A row is "dangerous" when the deterministic rules actively endorse
@@ -104,9 +110,9 @@ def main() -> None:
     p.append(f'<circle cx="30" cy="34" r="8" fill="none" stroke="{INK}" stroke-width="2.5"/>')
     p.append(f'<line x1="36" y1="40" x2="42" y2="46" stroke="{INK}" stroke-width="2.5" stroke-linecap="round"/>')
     p.append(f'<text x="52" y="30" font-size="18" font-weight="700" fill="{INK}">'
-             'Deterministic rules vs Claude, over 10 known claims on live PubMed</text>')
+             'Deterministic rules vs Claude, over 16 known claims on live PubMed</text>')
     p.append(f'<text x="52" y="48" font-size="12.5" fill="{MUTED}">'
-             'Where each extractor lands the verdict — agreement, honest gaps, and two dangerous misses</text>')
+             'Where each extractor lands the verdict — agreement, honest gaps, and three dangerous misses</text>')
 
     # Axis header: verdict columns ----------------------------------------
     present = {det for _, det, _ in ROWS} | {cl for _, _, cl in ROWS}
@@ -182,12 +188,12 @@ def main() -> None:
     p.append(f'<rect x="16" y="{band_y}" width="{W-32}" height="1" fill="#e6e4dd"/>')
     p.append(f'<circle cx="26" cy="{band_y+22}" r="4.5" fill="{DANGER_EDGE}"/>')
     p.append(f'<text x="38" y="{band_y+26}" font-size="12.5" fill="{INK}">'
-             '<tspan font-weight="700">Two dangerous misses.</tspan> '
-             'The deterministic rules grade <tspan font-weight="600">beta-carotene prevents lung cancer</tspan> '
-             'and <tspan font-weight="600">vitamin C prevents colds</tspan></text>')
+             '<tspan font-weight="700">Three dangerous misses.</tspan> '
+             'The deterministic rules grade <tspan font-weight="600">beta-carotene → lung cancer</tspan>, '
+             '<tspan font-weight="600">vitamin C → colds</tspan>, and</text>')
     p.append(f'<text x="38" y="{band_y+44}" font-size="12.5" fill="{INK}">'
-             'as well-supported — but the literature says the opposite. Claude reads the abstracts and lands both on '
-             '<tspan font-weight="600">contradicted</tspan>.</text>')
+             '<tspan font-weight="600">arthroscopic knee surgery → beats placebo</tspan> as well-supported. '
+             'Claude reads the abstracts and contradicts all three.</text>')
 
     # Legend ---------------------------------------------------------------
     ly = band_y + 74

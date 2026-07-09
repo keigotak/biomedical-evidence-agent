@@ -63,24 +63,28 @@ cancer *incidence* (null) vs *mortality* (a possible benefit) — and names the
 **D-Health trial** as the next source, every quote re-grounded against its
 abstract. Full snapshot: [`outputs/example_claim_audit_vitamin_d_pubmed.md`](outputs/example_claim_audit_vitamin_d_pubmed.md).
 
-And it behaves like a **system**, not a one-off: run it over 10 known claims on
+And it behaves like a **system**, not a one-off: run it over 16 known claims on
 live PubMed (`scripts/pubmed_scan.py`) and the verdicts distribute sensibly — the
 established oncology claims land `well-supported`, the debunked ones
 `contradicted`. That scan also **measures why the extractor is Claude**: on messy
-real claims the deterministic rules break — even grading *beta-carotene prevents
-lung cancer* as well-supported (it raised lung-cancer risk in ATBC/CARET) — while
-the Claude extractor correctly flags it `contradicted`. Snapshot:
-[`outputs/example_pubmed_scan.md`](outputs/example_pubmed_scan.md).
+real claims the deterministic rules break — in **three** rows they even grade a
+debunked claim as *well-supported* (*beta-carotene prevents lung cancer*, *vitamin
+C prevents colds*, *arthroscopic knee surgery beats placebo*) — while the Claude
+extractor correctly flags all three `contradicted` and *rescues* claims the rules
+missed (it finds the STEP evidence for *semaglutide reduces body weight*).
+Snapshot: [`outputs/example_pubmed_scan.md`](outputs/example_pubmed_scan.md).
 
 <p align="center">
-  <img src="docs/scan_shift.svg" alt="Verdict-shift chart: over 10 known claims on live PubMed, the deterministic rules and Claude agree on established oncology claims but diverge on debunked ones — and the rules dangerously grade beta-carotene-prevents-lung-cancer and vitamin-C-prevents-colds as well-supported, while Claude lands both on contradicted." width="820">
+  <img src="docs/scan_shift.svg" alt="Verdict-shift chart: over 16 known claims on live PubMed, the deterministic rules and Claude agree on established oncology claims but diverge on debunked ones — and the rules dangerously grade beta-carotene-prevents-lung-cancer, vitamin-C-prevents-colds, and arthroscopic-knee-surgery-beats-placebo as well-supported, while Claude lands all three on contradicted." width="820">
 </p>
 
 *Each row is one claim on live PubMed. The hollow ring is where the offline
 deterministic rules land the verdict; the filled dot is where Claude lands it.
-On established oncology they agree; on debunked claims the rules miss the evidence
-or — for beta-carotene and vitamin C — actively endorse it, and Claude pulls both
-to `contradicted`. Regenerate with `python scripts/render_scan_shift.py`.*
+On established claims they agree; on debunked ones the rules miss the evidence or
+— in three rows — actively endorse it, and Claude pulls all three to
+`contradicted`. It doesn't bluff either: for *statins reduce cardiovascular
+events* the retrieved abstracts were thin and Claude returned `insufficient`
+rather than inventing support. Regenerate with `python scripts/render_scan_shift.py`.*
 
 ## Core Workflow
 
@@ -222,7 +226,7 @@ PYTHONPATH=src python experiments/compare_claims.py
 │   ├── demo_video.md              # 3-minute demo-video storyboard (EN)
 │   ├── demo_video_ja.md           # 3-minute demo-video storyboard (JA)
 │   ├── hero.svg                   # README hero (rendered from real output)
-│   ├── scan_shift.svg             # Verdict-shift figure (det vs Claude, 10 claims)
+│   ├── scan_shift.svg             # Verdict-shift figure (det vs Claude, 16 claims)
 │   ├── ui_audit_contested.png     # Streamlit UI screenshot (contested audit)
 │   ├── ui_audit_overclaim.png     # Streamlit UI screenshot (overclaim caught)
 │   └── example_output.md          # Example evidence cards
@@ -244,7 +248,7 @@ PYTHONPATH=src python experiments/compare_claims.py
 │   ├── example_claim_comparison.md # Several claims audited side by side
 │   ├── example_extractor_ablation.md # Guard ablation on real Claude (snapshot)
 │   ├── example_claim_audit_vitamin_d_pubmed.md # Live-PubMed hero (contradicted)
-│   └── example_pubmed_scan.md     # 10 real claims: deterministic vs Claude
+│   └── example_pubmed_scan.md     # 16 real claims: deterministic vs Claude
 ├── experiments/                   # Side modules; do not affect the main demo
 │   ├── hypothesis_stress_test.py  # Multi-angle claim stress test
 │   ├── compare_claims.py          # Audit several claims into one comparison table

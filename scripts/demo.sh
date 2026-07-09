@@ -40,8 +40,8 @@ banner "4/7  Real PubMed — 'Vitamin D reduces cancer risk' -> CONTRADICTED by 
 sed -n '10,37p' outputs/example_claim_audit_vitamin_d_pubmed.md
 pause
 
-banner "5/7  Scale — 10 claims on live PubMed, deterministic vs Claude (open docs/scan_shift.svg on screen)"
-sed -n '24,42p' outputs/example_pubmed_scan.md
+banner "5/7  Scale — 16 claims on live PubMed, deterministic vs Claude (open docs/scan_shift.svg on screen)"
+sed -n '30,50p' outputs/example_pubmed_scan.md
 pause
 
 banner "6/7  Built with Claude — the reviewer catches incidence-vs-mortality (saved snapshot)"

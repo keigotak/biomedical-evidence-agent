@@ -32,13 +32,13 @@ the fields that usually appear. Trim to each form's word limit.
 > **verbatim span of its source**, flags for overclaiming and contradiction,
 > per-entity evidence coverage, and an explicit *"what would change my mind."*
 >
-> **Why Claude.** The extractor is Claude, and we *measure* why: over ten known
+> **Why Claude.** The extractor is Claude, and we *measure* why: over sixteen known
 > claims on live PubMed, offline rules either miss the evidence or get it
-> dangerously wrong — grading *beta-carotene prevents lung cancer* as
-> well-supported (it raised lung-cancer risk in ATBC/CARET). Claude reads the messy
-> abstracts and correctly lands it `contradicted`. A Claude reviewer then critiques
-> the audit — and every quote it cites is re-grounded, so it cannot fabricate a
-> citation.
+> dangerously wrong — in three rows grading a debunked claim (beta-carotene for lung
+> cancer, vitamin C for colds, arthroscopic knee surgery) as well-supported. Claude
+> reads the messy abstracts and correctly lands all three `contradicted`, while
+> rescuing claims the rules missed. A Claude reviewer then critiques the audit — and
+> every quote it cites is re-grounded, so it cannot fabricate a citation.
 >
 > **Honesty as a feature.** A 7-stream evaluation, a stress set reported at its
 > true 8/9 (never curated to a perfect score), and ablations showing the citation
@@ -47,11 +47,11 @@ the fields that usually appear. Trim to each form's word limit.
 ## Why Claude / how the model is used (≈60 words)
 
 > Claude is the evidence extractor and the reviewer. The scan in
-> `scripts/pubmed_scan.py` quantifies the difference: on messy real PubMed claims,
-> deterministic rules mislabel debunked claims as well-supported, while Claude
-> lands them `contradicted` (see `docs/scan_shift.svg`). A verbatim-span guard
-> re-checks every quote Claude cites, so the model exposes evidence without being
-> able to hallucinate a citation.
+> `scripts/pubmed_scan.py` quantifies the difference over sixteen live-PubMed
+> claims: deterministic rules mislabel three debunked claims as well-supported,
+> while Claude lands them `contradicted` and rescues ones the rules missed (see
+> `docs/scan_shift.svg`). A verbatim-span guard re-checks every quote Claude cites,
+> so the model exposes evidence without being able to hallucinate a citation.
 
 ## Technical depth (≈70 words)
 

@@ -31,6 +31,12 @@ CLAIMS = [
     "Vitamin C supplementation prevents the common cold.",
     "Ivermectin reduces mortality in COVID-19.",
     "Hydroxychloroquine reduces mortality in COVID-19.",
+    "The measles-mumps-rubella (MMR) vaccine causes autism.",
+    "Hormone replacement therapy prevents coronary heart disease in postmenopausal women.",
+    "Arthroscopic surgery for knee osteoarthritis is more effective than placebo.",
+    "Statins reduce the risk of cardiovascular events in high-risk patients.",
+    "Semaglutide reduces body weight in adults with obesity.",
+    "Aducanumab slows cognitive decline in Alzheimer's disease.",
 ]
 _ORDER = ("well-supported", "contested", "mixed", "contradicted", "insufficient")
 
