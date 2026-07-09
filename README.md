@@ -124,6 +124,16 @@ The reviewable Claim Audit Report also runs as a Streamlit app. Docker keeps it 
 docker compose up --build      # then open http://localhost:8501
 ```
 
+<p align="center">
+  <img src="docs/ui_audit_contested.png" alt="BioClaim Auditor Streamlit UI auditing a contested BRAF V600E claim: verdict badge, supporting/conflicting/citation-faithfulness metrics, a color-coded per-entity Evidence Map, and audit flags." width="900">
+</p>
+
+*The same pipeline as the CLI, in the browser: verdict, metrics, a color-coded
+Evidence Map, audit flags, reviewer critique, and a downloadable report. An
+overclaim looks like [this](docs/ui_audit_overclaim.png) — the Evidence Map turns
+red where no evidence addresses an entity, with `overclaim` and `retrieval-gap`
+flags.*
+
 Enter a claim, pick source / retriever / reviewer, and get the verdict, a visual **Evidence Map** (a per-entity bar showing which parts of the claim are supported, contested, or unaddressed — [standalone preview](outputs/example_evidence_map.html)), audit flags, the reviewer critique, and a downloadable Markdown/JSON report. To enable the Claude-backed reviewer, set `ANTHROPIC_API_KEY` in your environment before `docker compose up`.
 
 Without Docker: `pip install '.[ui]' && streamlit run app.py`.
@@ -213,6 +223,8 @@ PYTHONPATH=src python experiments/compare_claims.py
 │   ├── demo_video_ja.md           # 3-minute demo-video storyboard (JA)
 │   ├── hero.svg                   # README hero (rendered from real output)
 │   ├── scan_shift.svg             # Verdict-shift figure (det vs Claude, 10 claims)
+│   ├── ui_audit_contested.png     # Streamlit UI screenshot (contested audit)
+│   ├── ui_audit_overclaim.png     # Streamlit UI screenshot (overclaim caught)
 │   └── example_output.md          # Example evidence cards
 ├── scripts/
 │   ├── render_hero.py             # Regenerates docs/hero.svg from a real audit

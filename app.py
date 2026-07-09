@@ -96,6 +96,13 @@ def _build_reviewer(name: str):
 
 def main() -> None:
     st.set_page_config(page_title="BioClaim Auditor", page_icon="🔬", layout="wide")
+    # Hide Streamlit's default chrome (Deploy button, top-right toolbar/menu, footer)
+    # so the single-purpose app reads as a product, not a dev preview.
+    st.markdown(
+        "<style>.stDeployButton{display:none}[data-testid='stToolbar']{visibility:hidden}"
+        "#MainMenu{visibility:hidden}footer{visibility:hidden}</style>",
+        unsafe_allow_html=True,
+    )
     st.title("🔬 BioClaim Auditor")
     st.markdown(
         "**A claim-auditing tool for life sciences evidence.** "
