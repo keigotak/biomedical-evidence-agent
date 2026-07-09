@@ -21,7 +21,7 @@
 
 ---
 
-## ② 0:15–1:00 デモ1：contested な主張（核）
+## ② 0:15–0:55 デモ1：contested な主張（核）
 
 **画面**：実行してレポートをゆっくりスクロール。
 
@@ -44,7 +44,7 @@ Citation Audit 2/2 verbatim → Contradiction flag → What Would Change My Mind
 
 ---
 
-## ③ 1:00–1:30 デモ2：overclaim（過剰主張）を捕まえる
+## ③ 0:55–1:20 デモ2：overclaim（過剰主張）を捕まえる
 
 ```bash
 python -m biomedical_evidence_agent.cli \
@@ -63,7 +63,7 @@ python -m biomedical_evidence_agent.cli \
 
 ---
 
-## ④ 1:30–2:05 本番：実 PubMed（花形）
+## ④ 1:20–2:05 本番：実 PubMed（花形）＋スケール図
 
 **画面**：3領域の比較表を一瞬映してから、vitamin D の監査
 （[`outputs/example_claim_audit_vitamin_d_pubmed.md`](../outputs/example_claim_audit_vitamin_d_pubmed.md)、
@@ -81,12 +81,21 @@ python -m biomedical_evidence_agent.cli --source pubmed \
 > 「同じツールが3領域で動きます——が、本番はここ。**実際の PubMed** に向けます。
 > *“ビタミンDはがんリスクを下げる”*——多くの人が信じている主張です。監査結果は
 > **contradicted（反証されている）**。ランドマークの **VITAL 試験**の“有意差なし”
-> という結果を、**逐語で**引いてきます。トイデータではなく**実文献**。しかも
-> 雑多な実抄録からの抽出は **Claude** が担っています。」
+> という結果を、**逐語で**引いてきます。トイデータではなく**実文献**。」
+
+**画面**：ここで [`docs/scan_shift.svg`](scan_shift.svg) をフルスクリーンで映す
+（README のスケール callout 直下。8〜10秒）。
+
+> 「しかも一発芸ではありません。**10件の有名な主張**を実 PubMed でまとめて監査した
+> 図です。中空リングがオフラインの決定論ルール、塗りつぶしが **Claude**。確立した
+> 腫瘍領域では**一致**しますが、雑多な実主張ではルールが破綻します——
+> **“β-カロテンが肺がんを予防”“ビタミンCが風邪を予防”を well-supported と誤判定**
+> （実際は真逆）。Claude は抄録を読み、両方を **contradicted** まで引き戻します。
+> “Built with Claude”は飾りではなく、**測定できる差**です。」
 
 ---
 
-## ⑤ 2:05–2:40 Built with Claude：専門家級のレビュー
+## ⑤ 2:05–2:35 Built with Claude：専門家級のレビュー
 
 **画面**：同じ vitamin D スナップショットの **Reviewer Critique** セクション。
 
@@ -120,10 +129,10 @@ extractor ablation）または [`docs/evaluation.md`](evaluation.md)、最後に
 | ビート | 尺 | 見せるもの |
 |---|---|---|
 | フック | 0:15 | 何であって何でないか |
-| contested な主張 | 0:45 | 判定・引用・矛盾・WWCMM |
-| overclaim | 0:30 | 過剰主張フラグ＋網羅ギャップ |
-| 汎化＋PubMed | 0:30 | 3領域＋実論文 |
-| Built with Claude | 0:35 | grounded なレビュアー・捏造引用不可 |
+| contested な主張 | 0:40 | 判定・引用・矛盾・WWCMM |
+| overclaim | 0:25 | 過剰主張フラグ＋網羅ギャップ |
+| PubMed＋スケール図 | 0:45 | vitamin D 反証＋10件シフト図（Claude必然性） |
+| Built with Claude | 0:30 | grounded なレビュアー・捏造引用不可 |
 | 締め | 0:25 | 誠実な評価＋ピッチ＋安全 |
 
 ## 一言ピッチ（締めを短くしたい場合）

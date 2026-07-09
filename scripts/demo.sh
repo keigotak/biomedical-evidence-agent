@@ -22,28 +22,32 @@ clear
 banner "BioClaim Auditor — it audits a claim, it doesn't just answer it"
 pause
 
-banner "1/6  A CONTESTED claim (BRAF V600E melanoma + targeted inhibitors)"
+banner "1/7  A CONTESTED claim (BRAF V600E melanoma + targeted inhibitors)"
 $CLI --claim "BRAF V600E melanoma is associated with response to targeted inhibitor treatment." \
      --top-k 3 --report claim-audit --reviewer mock
 pause
 
-banner "2/6  An OVERCLAIM ('definitively cures ... with salbutamol')"
+banner "2/7  An OVERCLAIM ('definitively cures ... with salbutamol')"
 $CLI --claim "TP53 mutation definitively cures colorectal cancer with salbutamol." \
      --top-k 3 --report claim-audit
 pause
 
-banner "3/6  Three therapeutic areas at a glance"
+banner "3/7  Three therapeutic areas at a glance"
 python experiments/compare_claims.py
 pause
 
-banner "4/6  Real PubMed — 'Vitamin D reduces cancer risk' -> CONTRADICTED by the VITAL trial (saved snapshot)"
+banner "4/7  Real PubMed — 'Vitamin D reduces cancer risk' -> CONTRADICTED by the VITAL trial (saved snapshot)"
 sed -n '10,37p' outputs/example_claim_audit_vitamin_d_pubmed.md
 pause
 
-banner "5/6  Built with Claude — the reviewer catches incidence-vs-mortality (saved snapshot)"
+banner "5/7  Scale — 10 claims on live PubMed, deterministic vs Claude (open docs/scan_shift.svg on screen)"
+sed -n '24,42p' outputs/example_pubmed_scan.md
+pause
+
+banner "6/7  Built with Claude — the reviewer catches incidence-vs-mortality (saved snapshot)"
 sed -n '50,57p' outputs/example_claim_audit_vitamin_d_pubmed.md
 pause
 
-banner "6/6  Honest evaluation — 7 streams, stress 8/9, guard ablation"
+banner "7/7  Honest evaluation — 7 streams, stress 8/9, guard ablation"
 python -m biomedical_evidence_agent.evaluation | tail -n 24
 printf '\n\033[1;36m### Research signal only — not medical advice.\033[0m\n'

@@ -33,7 +33,7 @@ point at.
 
 ---
 
-## 0:15–1:00 — Demo 1: the contested claim (the core)
+## 0:15–0:55 — Demo 1: the contested claim (the core)
 
 **On screen:** run it, scroll slowly through the report.
 
@@ -57,7 +57,7 @@ colored Evidence Map bars, the downloadable report.)*
 
 ---
 
-## 1:00–1:30 — Demo 2: catching an overclaim
+## 0:55–1:20 — Demo 2: catching an overclaim
 
 ```bash
 python -m biomedical_evidence_agent.cli \
@@ -76,7 +76,7 @@ addresses this entity`.
 
 ---
 
-## 1:30–2:05 — The real test: live PubMed (the hero)
+## 1:20–2:05 — The real test: live PubMed (the hero) + scale figure
 
 **On screen:** a quick flash of the 3-domain comparison table, then the vitamin D
 audit — the snapshot [`outputs/example_claim_audit_vitamin_d_pubmed.md`](../outputs/example_claim_audit_vitamin_d_pubmed.md)
@@ -94,12 +94,22 @@ Point at: **Audit Verdict: contradicted** and the **VITAL** conflicting line
 > "Same tool across three areas — but here's the real test: point it at **live
 > PubMed**. *Vitamin D reduces cancer risk* — a claim a lot of people believe. The
 > auditor grades it **contradicted**, and pulls the landmark **VITAL trial's**
-> null result, quoted **verbatim**. This is real literature, not toy data — and
-> Claude does the extraction from messy real abstracts."
+> null result, quoted **verbatim**. This is real literature, not toy data."
+
+**On screen:** now full-screen [`docs/scan_shift.svg`](scan_shift.svg) (the figure
+under the README scale callout — hold it for 8–10s).
+
+> "And it's not a one-off. Here are **ten well-known claims** audited on live
+> PubMed at once. The hollow ring is the offline deterministic rules; the filled
+> dot is **Claude**. On established oncology they agree — but on messy real claims
+> the rules break: they grade *beta-carotene prevents lung cancer* and *vitamin C
+> prevents colds* as **well-supported**, the exact opposite of the truth. Claude
+> reads the abstracts and pulls both to **contradicted**. That's what 'Built with
+> Claude' buys here — a **measurable** difference, not a gimmick."
 
 ---
 
-## 2:05–2:40 — Built with Claude: expert-level review
+## 2:05–2:35 — Built with Claude: expert-level review
 
 **On screen:** the Reviewer Critique section of the same vitamin D snapshot.
 
@@ -132,17 +142,17 @@ then a safety card.
 
 ## Shortest zero-setup path (if you only have a terminal)
 
-1. Demo 1 command → 2. Demo 2 command → 3. `compare_claims.py` → 4. open the
-PubMed and Claude-reviewer snapshots in `outputs/` → 5. `… .evaluation | tail`.
-That is the full 3 minutes with no Docker and no API key.
+1. Demo 1 command → 2. Demo 2 command → 3. open the PubMed / Claude-reviewer
+snapshots in `outputs/` → 4. open `docs/scan_shift.svg` (the 10-claim figure) →
+5. `… .evaluation | tail`. That is the full 3 minutes with no Docker and no API key.
 
 ## Timing cheat-sheet
 
 | Beat | Time | Shows |
 |---|---|---|
 | Hook | 0:15 | what it is / isn't |
-| Contested claim | 0:45 | verdict, citations, contradiction, WWCMM |
-| Overclaim | 0:30 | overclaim flag + entity coverage gap |
-| Generalization + PubMed | 0:30 | 3 areas + real papers |
-| Built with Claude | 0:35 | grounded reviewer, no fabricated citation |
+| Contested claim | 0:40 | verdict, citations, contradiction, WWCMM |
+| Overclaim | 0:25 | overclaim flag + entity coverage gap |
+| PubMed + scale figure | 0:45 | vitamin D contradicted + 10-claim shift (Claude necessity) |
+| Built with Claude | 0:30 | grounded reviewer, no fabricated citation |
 | Close | 0:25 | honest eval + pitch + safety |
