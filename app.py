@@ -142,21 +142,25 @@ def main() -> None:
         if not claim.strip():
             st.warning("Enter a claim to audit.")
         else:
+            fetching = "Searching PubMed…" if source == "pubmed" else "Retrieving evidence…"
             try:
-                retrieved = _retrieve(claim, source, retriever_name, top_k)
+                with st.spinner(fetching):
+                    retrieved = _retrieve(claim, source, retriever_name, top_k)
             except RuntimeError as exc:
                 st.error(str(exc))
             else:
-                card = build_evidence_card(
-                    query=claim, retrieved=retrieved, claim=claim, source=source
-                )
-                audit = audit_card(card)
+                with st.spinner("Auditing the claim…"):
+                    card = build_evidence_card(
+                        query=claim, retrieved=retrieved, claim=claim, source=source
+                    )
+                    audit = audit_card(card)
                 critique = None
                 if reviewer_name != "none":
                     try:
-                        critique = review_card(
-                            card, audit, reviewer=_build_reviewer(reviewer_name)
-                        )
+                        with st.spinner("Claude is reviewing the audit…"):
+                            critique = review_card(
+                                card, audit, reviewer=_build_reviewer(reviewer_name)
+                            )
                     except ReviewerUnavailable as exc:
                         st.warning(
                             f"Claude reviewer unavailable, continuing without a critique: {exc}"
