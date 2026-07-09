@@ -6,7 +6,9 @@ per-field limit shown on the form.
 ---
 
 ## Team Name
-*(pick one — see chat for options)* — e.g. **BioClaim** or **ktak5**
+**Counterscreen** — like the pharma counterscreen that filters out false-positive
+hits, this team filters out false-positive *claims*. (Product name stays *BioClaim
+Auditor* in the field below.)
 
 ## Team Members
 Keigo Takahashi (ktak5)
