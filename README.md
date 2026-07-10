@@ -46,7 +46,17 @@ contested (strength +0.00) — supports: 1×clinical; conflicts: 1×clinical
 
 Note what a smooth answer would have hidden: the claim is **contested**, not confirmed; both cited quotes are verified verbatim; and the tool says exactly what evidence would move it.
 
-### It runs on real literature, not just toy data
+## Concept
+
+*The 30-second version — what BioClaim Auditor is, and why it exists.*
+
+- **The problem.** Reading the literature — or asking an LLM to summarize it — usually yields a *smooth answer*: a confident synthesis that quietly buries disagreement, overclaims, and citations nobody checked. For a claim that decides an experiment or a budget, "sounds right" isn't good enough.
+- **The bet.** Don't ask the model for a better answer — ask it to **audit the claim**. Make it lay out the evidence on both sides, verify every quote against its source, grade the claim, and say what would change the verdict. *An audit you can check beats an answer you have to trust.*
+- **What you get.** One biological or translational claim in → a reviewable **Claim Audit Report** out: a graded verdict (`well-supported` / `mixed` / `contested` / `contradicted` / `insufficient`), an **Evidence Map** of supporting vs. conflicting sources per claim entity, a **citation-faithfulness** check (every quote must be a verbatim span of its source), **overclaim / contradiction / retrieval-gap** flags, a **reviewer critique**, and an explicit *"what would change my mind."*
+- **Why Claude is load-bearing.** On messy real claims from live PubMed the deterministic rules break — in three cases they even endorse debunked claims — while Claude's extractor and reviewer get them right and stay citation-faithful. This is *measured* over 16 live-PubMed claims (the verdict-shift scan below), not asserted. Claude isn't a garnish.
+- **Deliberately narrow.** A deep claim auditor for critical reading — **not** an AI-scientist workbench, a RAG search engine, a wet-lab analyzer, or anything that emits medical advice. Research signal only, no patient data, toy/sample data by default.
+
+## It runs on real literature, not just toy data
 
 Point it at live PubMed with the real Claude extractor and reviewer:
 
