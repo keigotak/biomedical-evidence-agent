@@ -1,0 +1,31 @@
+# BioClaim Auditor — React + FastAPI front-end.
+# Stage 1 builds the React bundle; stage 2 serves it (and the API) from FastAPI,
+# so the whole app is one container on one port. The Streamlit path (Dockerfile)
+# is left untouched as a fallback.
+
+# ---- Stage 1: build the React app ----
+FROM node:22-slim AS web
+WORKDIR /web
+COPY web/package.json web/package-lock.json* ./
+RUN npm install
+COPY web/ ./
+RUN npm run build
+
+# ---- Stage 2: Python API serving the built assets ----
+FROM python:3.12-slim
+WORKDIR /app
+
+# Install the package with the API extra first for layer caching.
+COPY pyproject.toml README.md ./
+COPY src ./src
+RUN pip install --no-cache-dir '.[api]'
+
+# App code + data (corpus/ontology) + the built React bundle the API mounts.
+COPY data ./data
+COPY --from=web /web/dist ./web/dist
+
+EXPOSE 8000
+HEALTHCHECK CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')" || exit 1
+
+CMD ["uvicorn", "biomedical_evidence_agent.api:app", \
+     "--host", "0.0.0.0", "--port", "8000"]

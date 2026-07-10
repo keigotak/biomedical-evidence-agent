@@ -1,9 +1,22 @@
 services:
+  # React + FastAPI front-end (the new default UI) on http://localhost:8000
+  bioclaim-web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    ports:
+      - "8000:8000"
+    environment:
+      # Optional: enables the Claude-backed reviewer ('claude' in the UI).
+      # Leave unset to run fully offline with the deterministic + mock paths.
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+
+  # Legacy Streamlit UI on http://localhost:8501 — kept as a fallback.
+  # Start it explicitly:  docker compose --profile streamlit up bioclaim-auditor
   bioclaim-auditor:
     build: .
+    profiles: ["streamlit"]
     ports:
       - "8501:8501"
     environment:
-      # Optional: enables the Claude-backed reviewer (--reviewer claude in the UI).
-      # Leave unset to run fully offline with the deterministic + mock paths.
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
