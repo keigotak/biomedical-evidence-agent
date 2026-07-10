@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "experiments"))
 
 import compare_claims  # noqa: E402
+import document_audit  # noqa: E402
 import reviewer_duel  # noqa: E402
 
 
@@ -77,6 +78,35 @@ class CompareClaimsTest(unittest.TestCase):
         self.assertIn("well-supported", egfr)
         self.assertNotIn("well-supported", tp53)
         self.assertIn("overclaim", tp53)
+
+
+class DocumentAuditTest(unittest.TestCase):
+    CORPUS = ROOT / "data" / "sample_corpus.jsonl"
+
+    def test_only_concept_bearing_assertions_become_claims(self) -> None:
+        from biomedical_evidence_agent.ontology import Ontology
+
+        passage = (
+            "BRAF V600E melanoma is associated with response to targeted inhibitor "
+            "treatment. The assay was run in triplicate at room temperature. "
+            "EGFR is a receptor tyrosine kinase."
+        )
+        claims = document_audit.extract_claims(passage, Ontology.load())
+        # The methods sentence (no concept, no cue) and the bare definition (concept
+        # but no assertion cue) are both excluded; only the real claim survives.
+        self.assertEqual(len(claims), 1)
+        self.assertIn("BRAF", claims[0])
+
+    def test_batch_report_flags_the_overclaim(self) -> None:
+        passage = (
+            "EGFR variants are associated with response to TKI in NSCLC. "
+            "TP53 mutation definitively cures colorectal cancer with salbutamol."
+        )
+        result = document_audit.audit_document(passage, corpus=self.CORPUS)
+        self.assertEqual(result["claims_found"], 2)
+        report = document_audit.render_document_audit(result)
+        self.assertIn("well-supported", report)
+        self.assertIn("overclaim", report)
 
 
 if __name__ == "__main__":

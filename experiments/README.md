@@ -47,6 +47,21 @@ PYTHONPATH=src python experiments/hypothesis_stress_test.py \
   PYTHONPATH=src python experiments/compare_claims.py   # default demo set
   ```
 
+- **`document_audit.py`** — paste a *paragraph* (a paper's discussion, a review's
+  conclusion, a press release) and it pulls out the sentences that actually make
+  a biological claim — each must ground a gene/drug concept **and** carry an
+  assertion cue — audits every one, and prints a batch report that surfaces the
+  overclaims and contradictions hiding in an otherwise smooth paragraph. Claim
+  segmentation reuses the ontology backbone, so it stays offline and can't invent
+  a claim the text didn't make (the honest tradeoff: it skips claims phrased
+  without a cue word). Snapshot:
+  [`../outputs/example_document_audit.md`](../outputs/example_document_audit.md).
+
+  ```bash
+  PYTHONPATH=src python experiments/document_audit.py                 # default passage
+  PYTHONPATH=src python experiments/document_audit.py --file notes.txt
+  ```
+
 ## Ideas parked here (not yet built)
 
 - (The Evidence Map visualization graduated into the Streamlit app —
