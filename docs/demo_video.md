@@ -2,11 +2,12 @@
 
 A shot-by-shot plan for a ~3:00 screen-recording. Every command is copy-paste
 and produces the output described (verified). The terminal path needs no Docker
-or API key; two beats are richer if you can show the Streamlit UI and a
+or API key; two beats are richer if you can show the React web UI and a
 Claude-backed run, but both have a no-setup fallback.
 
 **Before recording:** big terminal font, `cd` into the repo, and pre-clear the
-screen. Optional: `docker compose up --build` in a second window for the UI beat.
+screen. Optional: `docker compose up --build` in a second window for the UI beat
+(opens the React app at http://localhost:8000).
 
 **Easiest path — one command, paced by you:**
 
@@ -52,8 +53,8 @@ flag** → **What Would Change My Mind**.
 > source. It **flags the contradiction** instead of smoothing it over — and tells
 > you exactly what evidence would break the tie."
 
-*(Richer option: show the same claim in the Streamlit UI — the verdict badge, the
-colored Evidence Map bars, the downloadable report.)*
+*(Richer option: show the same claim in the React web UI — the verdict banner with
+its strength meter, the color-coded Evidence Map bars, and the downloadable report.)*
 
 ---
 

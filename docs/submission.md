@@ -60,8 +60,8 @@ the fields that usually appear. Trim to each form's word limit.
 > verdicts, citation-faithfulness and overclaim/contradiction auditing, MoA and
 > quantitative extraction. Claude backends are dependency-injected and optional, so
 > the whole pipeline runs and is fully tested offline (83 tests, 7 evaluation
-> streams). Live PubMed retrieval, a Streamlit UI, and reproducible SVG figures
-> ship alongside.
+> streams). Live PubMed retrieval, a React + FastAPI web UI, and reproducible SVG
+> figures ship alongside.
 
 ## What's next (≈40 words)
 

@@ -22,7 +22,7 @@ made with Claude Code that outlasts the week.*
 
 ## Project description — what you built, what you found, why it matters
 
-BioClaim Auditor is working software — CLI, Streamlit UI, and reproducible reports
+BioClaim Auditor is working software — CLI, React web UI, and reproducible reports
 — for a user I can name because I am one: a drug-discovery researcher who reads
 biomedical papers all day and is tired of confident claims (from papers, press
 releases, and now LLMs) that outrun their evidence.
@@ -66,9 +66,9 @@ Two ways, and both were central.
 
 **Claude Code** built the entire tool in a week — the concept-grounded retrieval
 and audit pipeline, the evaluation harness (83 tests, a 7-stream capability suite
-plus ablations and an honest stress set), the Streamlit UI, and the reproducible
-figures — iterating test-first with real end-to-end behavior checks, not just green
-tests.
+plus ablations and an honest stress set), the React + FastAPI web UI, and the
+reproducible figures — iterating test-first with real end-to-end behavior checks,
+not just green tests.
 
 **The Claude API (Opus 4.8)** is the product's engine: the evidence **extractor**
 that reads messy PubMed abstracts into grounded stance, and the **reviewer** that

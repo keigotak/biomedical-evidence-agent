@@ -39,8 +39,8 @@ Citation Audit 2/2 verbatim → Contradiction flag → What Would Change My Mind
 > 検証済み**です。矛盾を覆い隠さず**フラグとして提示**し、“何が分かればこの結論が
 > 変わるか”まで示します。」
 
-*(豪華版：同じ主張を Streamlit UI で。verdict バッジ・色付き Evidence Map・
-ダウンロードできるレポート。)*
+*(豪華版：同じ主張を React Web UI（http://localhost:8000）で。強度メーター付き
+verdict バナー・色分けされた Evidence Map・ダウンロードできるレポート。)*
 
 ---
 
