@@ -16,6 +16,7 @@ dependencies = []
 semantic = ["sentence-transformers>=2.2"]
 llm = ["anthropic>=0.40"]
 ui = ["streamlit>=1.30"]
+api = ["fastapi>=0.110", "uvicorn[standard]>=0.29", "pydantic>=2.0"]
 
 [project.scripts]
 biomedical-evidence-agent = "biomedical_evidence_agent.cli:main"

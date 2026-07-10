@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.local
+.vite/
+# Build artifacts from `tsc -b` (incremental cache + emitted config JS)
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts

@@ -120,13 +120,42 @@ The implementation is intentionally compact. It is meant to show the shape of a 
 
 See [`docs/differentiation.md`](docs/differentiation.md) for what makes this an *auditor* rather than a search tool, and [`docs/demo_video.md`](docs/demo_video.md) for a 3-minute demo-video storyboard (or [`docs/hackathon_demo.md`](docs/hackathon_demo.md) for the 2-minute live-demo script).
 
-## Web UI (Docker)
+## Web UI
 
-The reviewable Claim Audit Report also runs as a Streamlit app. Docker keeps it self-contained — no local Streamlit install, and the dependency-free core stays intact:
+The reviewable Claim Audit Report runs as a **React front-end over a FastAPI
+backend**. Both talk to the exact same pipeline as the CLI
+(`build_evidence_card → audit_card → review_card → audit_json`), so the UI can
+never diverge from the audited core. Docker keeps it self-contained on one port:
 
 ```bash
-docker compose up --build      # then open http://localhost:8501
+docker compose up --build      # then open http://localhost:8000
 ```
+
+The FastAPI app serves the built React bundle *and* the `/api/audit` endpoint
+from the same origin, so it's a single container.
+
+**Local development** (hot reload, two processes):
+
+```bash
+# 1. API on :8000
+uv run --extra api uvicorn biomedical_evidence_agent.api:app --reload
+# 2. Vite dev server on :5173 (proxies /api to :8000)
+cd web && npm install && npm run dev
+```
+
+To ship a static build the API serves directly: `cd web && npm run build`
+(outputs `web/dist`, which `biomedical_evidence_agent.api` mounts at `/`).
+
+<details>
+<summary>Legacy Streamlit UI (fallback)</summary>
+
+The original single-file Streamlit app is still here:
+
+```bash
+docker compose --profile streamlit up bioclaim-auditor   # http://localhost:8501
+# or without Docker:  pip install '.[ui]' && streamlit run app.py
+```
+</details>
 
 <p align="center">
   <img src="docs/ui_audit_contested.png" alt="BioClaim Auditor Streamlit UI auditing a contested BRAF V600E claim: verdict badge, supporting/conflicting/citation-faithfulness metrics, a color-coded per-entity Evidence Map, and audit flags." width="900">
