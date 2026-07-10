@@ -6,6 +6,7 @@ from pathlib import Path
 from biomedical_evidence_agent.audit import (
     audit_card,
     claim_concept_coverage,
+    resolution_path,
     what_would_change_my_mind,
 )
 from biomedical_evidence_agent.evidence import build_evidence_card
@@ -57,6 +58,31 @@ class AuditTest(unittest.TestCase):
         overclaims = [f for f in audit.findings if f.category == "overclaim"]
         self.assertTrue(overclaims)
         self.assertEqual(overclaims[0].severity, "high")
+
+    def test_resolution_path_targets_contradiction_with_entities(self) -> None:
+        claim = (
+            "BRAF V600E melanoma is associated with response to targeted "
+            "inhibitor treatment."
+        )
+        card = self._card(claim)
+        steps = resolution_path(card, audit_card(card))
+        kinds = {s["kind"] for s in steps}
+        self.assertIn("independent-source", kinds)
+        tie = next(s for s in steps if s["kind"] == "independent-source")
+        # Grounded: the issue names the actual claim entities, not generic advice.
+        self.assertTrue(any(e in tie["issue"] for e in ("BRAF", "melanoma")))
+        self.assertTrue(tie["suggestion"])
+
+    def test_resolution_path_flags_uncovered_entity(self) -> None:
+        card = self._card(
+            "TP53 mutation definitively cures colorectal cancer with salbutamol."
+        )
+        steps = resolution_path(card, audit_card(card))
+        cover = [s for s in steps if s["kind"] == "cover-entity"]
+        self.assertTrue(cover)
+        # The uncovered entity is named in the step and its entities list.
+        self.assertIn("colorectal cancer", cover[0]["issue"])
+        self.assertIn("colorectal cancer", cover[0]["entities"])
 
     def test_well_supported_claim_raises_no_high_flags(self) -> None:
         audit = audit_card(

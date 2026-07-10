@@ -66,6 +66,19 @@ export interface ReviewerCritique {
   findings: ReviewFinding[];
 }
 
+export interface ReauditAction {
+  label: string;
+  params: Partial<AuditParams>;
+}
+
+export interface ResolutionStep {
+  kind: string;
+  issue: string;
+  suggestion: string;
+  entities: string[];
+  action: ReauditAction | null;
+}
+
 export interface AuditResult {
   claim: string;
   source: string;
@@ -80,6 +93,7 @@ export interface AuditResult {
   limitations: string[];
   markdown: string;
   records_retrieved: number;
+  resolution_path: ResolutionStep[];
   reviewer_warning: string | null;
   settings: {
     source: string;

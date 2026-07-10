@@ -1,26 +1,77 @@
 import ReactMarkdown from "react-markdown";
 import type {
+  AuditParams,
   AuditResult,
   EvidenceClaim,
   EvidenceMapEntry,
+  ResolutionStep,
 } from "../types";
 import { SEVERITY, STANCE_COLOR, VERDICT_COLOR } from "../constants";
 
-export function Results({ result }: { result: AuditResult }) {
+interface ResultsProps {
+  result: AuditResult;
+  onReaudit: (overrides: Partial<AuditParams>) => void;
+  loading: boolean;
+}
+
+export function Results({ result, onReaudit, loading }: ResultsProps) {
   return (
     <div className="results">
       <VerdictBanner result={result} />
       <Metrics result={result} />
       <EvidenceMap rows={result.evidence_map} />
       <Flags result={result} />
+      <ResolutionPath
+        steps={result.resolution_path}
+        onReaudit={onReaudit}
+        loading={loading}
+      />
       <EvidenceLists result={result} />
       {result.reviewer_critique && (
         <Critique critique={result.reviewer_critique} />
       )}
-      <MindChangers result={result} />
+      <Limitations items={result.limitations} />
       <ReportPanel result={result} />
       <Downloads result={result} />
     </div>
+  );
+}
+
+function ResolutionPath({
+  steps,
+  onReaudit,
+  loading,
+}: {
+  steps: ResolutionStep[];
+  onReaudit: (overrides: Partial<AuditParams>) => void;
+  loading: boolean;
+}) {
+  if (!steps.length) return null;
+  return (
+    <section>
+      <h3 className="section-title">Resolution path — how to settle it</h3>
+      <div className="card resolution">
+        {steps.map((s, i) => (
+          <div className="resolution-step" key={i}>
+            <div className="resolution-body">
+              <div className="resolution-issue">{s.issue}</div>
+              <div className="resolution-suggestion">{s.suggestion}</div>
+            </div>
+            {s.action && (
+              <button
+                className="btn-resolve"
+                disabled={loading}
+                onClick={() => onReaudit(s.action!.params)}
+                title="Re-run the audit with this change"
+              >
+                {loading ? <span className="spinner" /> : "↻ "}
+                {s.action.label}
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -307,36 +358,16 @@ function Critique({
   );
 }
 
-function BulletCol({ title, items }: { title: string; items: string[] }) {
-  return (
-    <div>
-      <h4 className="section-title" style={{ marginBottom: 8 }}>
-        {title}
-      </h4>
-      {items.length ? (
-        <ul className="bullet-list">
-          {items.map((it, i) => (
-            <li key={i}>{it}</li>
-          ))}
-        </ul>
-      ) : (
-        <div className="empty-note">None.</div>
-      )}
-    </div>
-  );
-}
-
-function MindChangers({ result }: { result: AuditResult }) {
+function Limitations({ items }: { items: string[] }) {
+  if (!items.length) return null;
   return (
     <section>
-      <div className="bullet-grid">
-        <BulletCol
-          title="What would change my mind"
-          items={result.what_would_change_my_mind}
-        />
-        <BulletCol title="Suggested next checks" items={result.next_checks} />
-        <BulletCol title="Limitations" items={result.limitations} />
-      </div>
+      <h3 className="section-title">Limitations</h3>
+      <ul className="bullet-list">
+        {items.map((it, i) => (
+          <li key={i}>{it}</li>
+        ))}
+      </ul>
     </section>
   );
 }

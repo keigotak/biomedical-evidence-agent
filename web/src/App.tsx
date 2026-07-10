@@ -45,16 +45,21 @@ export default function App() {
 
   const patch = (p: Partial<AuditParams>) => setParams((prev) => ({ ...prev, ...p }));
 
-  async function audit() {
-    if (!params.claim.trim()) {
+  // `overrides` lets the resolution-path buttons re-audit with a changed setting
+  // (e.g. source -> pubmed) in one click; the override is also written back to
+  // the sidebar so the UI reflects what was run.
+  async function audit(overrides: Partial<AuditParams> = {}) {
+    const merged = { ...params, ...overrides };
+    if (Object.keys(overrides).length) setParams(merged);
+    if (!merged.claim.trim()) {
       setError("Enter a claim to audit.");
       return;
     }
     setLoading(true);
     setError(null);
-    setStatus(params.source === "pubmed" ? "Searching PubMed…" : "Auditing the claim…");
+    setStatus(merged.source === "pubmed" ? "Searching PubMed…" : "Auditing the claim…");
     try {
-      const res = await runAudit(params);
+      const res = await runAudit(merged);
       setResult(res);
     } catch (e) {
       // Keep the previous report on screen rather than blanking it on failure.
@@ -118,7 +123,7 @@ export default function App() {
             }}
           />
           <div className="claim-actions">
-            <button className="btn-primary" onClick={audit} disabled={loading}>
+            <button className="btn-primary" onClick={() => audit()} disabled={loading}>
               {loading && <span className="spinner" />}
               {loading ? "Auditing…" : "Audit claim"}
             </button>
@@ -135,7 +140,7 @@ export default function App() {
         )}
 
         {result ? (
-          <Results result={result} />
+          <Results result={result} onReaudit={audit} loading={loading} />
         ) : (
           !error && (
             <div className="empty-state">
