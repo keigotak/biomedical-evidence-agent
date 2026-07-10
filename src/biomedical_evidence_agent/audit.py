@@ -236,6 +236,128 @@ def _join(names: list[str]) -> str:
     return ", ".join(names[:-1]) + " and " + names[-1]
 
 
+def resolution_path(
+    card: EvidenceCard, audit: AuditReport, ontology: Ontology | None = None
+) -> list[dict]:
+    """Actionable, grounded steps to *settle* the claim, derived from the audit.
+
+    The actionable sibling of :func:`what_would_change_my_mind`: each step pairs
+    an ``issue`` the audit actually found with the ``suggestion`` (evidence that
+    would resolve it), named to the claim's own entities. The kinds are stable
+    strings so the API layer can attach an executable re-audit action to each
+    without re-deriving anything — the "how would it become clear" closed loop.
+    This function stays UI-free and grounded (it never proposes experiments, only
+    evidence to seek), so it is unit-testable on its own.
+
+    Returns a list of ``{kind, issue, suggestion, entities}`` dicts, ordered most
+    decision-relevant first.
+    """
+
+    label = card.verdict.label if card.verdict else "insufficient"
+    coverage = claim_concept_coverage(card, ontology)
+    all_entities = [c["name"] for c in coverage]
+    uncovered = [
+        c["name"]
+        for c in coverage
+        if c["supports"] + c["conflicts"] + c["indirect"] == 0
+    ]
+    contested = [c["name"] for c in coverage if c["supports"] and c["conflicts"]]
+    focus = _join(contested or all_entities) or "the claim's entities"
+    steps: list[dict] = []
+
+    def add(kind: str, issue: str, suggestion: str, entities: list[str]) -> None:
+        steps.append(
+            {
+                "kind": kind,
+                "issue": issue,
+                "suggestion": suggestion,
+                "entities": list(entities[:3]),
+            }
+        )
+
+    # 1) A claim entity nothing addressed — the most concrete, fixable gap.
+    if uncovered:
+        add(
+            "cover-entity",
+            f"No retrieved evidence addresses {_join(uncovered)}.",
+            f"Find a source that actually names {_join(uncovered)} — it is in the "
+            "claim but unaddressed by anything retrieved.",
+            uncovered,
+        )
+
+    # 2) Sources on both sides — the verdict hinges on a tie-breaker.
+    has_contradiction = any(f.category == "contradiction" for f in audit.findings)
+    if label == "contested" or has_contradiction:
+        add(
+            "independent-source",
+            f"Independent sources disagree on {focus}.",
+            "Pull an independent, higher-tier source that breaks the tie, plus a "
+            "mechanism for why the existing reports disagree.",
+            contested or all_entities,
+        )
+
+    # 3) Too thin / indirect / mixed to grade with confidence.
+    if label in ("insufficient", "mixed"):
+        issue = (
+            "The evidence is indirect or too thin to grade confidently."
+            if label == "insufficient"
+            else f"Evidence on {focus} is mixed with no clear direction."
+        )
+        add(
+            "broaden-retrieval",
+            issue,
+            f"Broaden retrieval for {focus} — more records, or live PubMed — to "
+            "surface direct, higher-tier evidence.",
+            all_entities,
+        )
+
+    # 4) Support resting on preclinical tiers only.
+    if any(
+        f.category == "overclaim" and f.severity in ("warn", "high")
+        for f in audit.findings
+    ):
+        add(
+            "clinical-tier",
+            "The support rests on preclinical tiers only.",
+            f"Seek clinical-tier confirmation on {focus} before relying on it.",
+            all_entities,
+        )
+
+    # 5) A verdict with nothing opposing it still deserves a stress test.
+    if label == "well-supported" and not steps:
+        add(
+            "broaden-retrieval",
+            f"Nothing retrieved currently opposes the claim about {focus}.",
+            "Stress-test it: search for a well-powered contradicting result or "
+            "signs of publication bias.",
+            all_entities,
+        )
+
+    # 6) Evidence points against the claim — look for a genuine counter or a flaw.
+    if label == "contradicted" and not any(
+        s["kind"] == "independent-source" for s in steps
+    ):
+        add(
+            "independent-source",
+            f"The evidence currently points against the claim about {focus}.",
+            "Look for a well-powered supporting result, or a flaw in the "
+            "conflicting studies, before dismissing it.",
+            contested or all_entities,
+        )
+
+    # 7) Citation faithfulness — a manual re-grounding, not an auto re-run.
+    if any(f.category == "citation" for f in audit.findings):
+        add(
+            "reground-citation",
+            "Some cited quotes are not verbatim spans of their source.",
+            "Re-check the flagged quotes against the source text before relying "
+            "on them.",
+            [],
+        )
+
+    return steps
+
+
 def what_would_change_my_mind(
     card: EvidenceCard, audit: AuditReport, ontology: Ontology | None = None
 ) -> list[str]:

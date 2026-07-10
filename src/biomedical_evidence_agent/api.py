@@ -20,7 +20,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-from .audit import audit_card
+from .audit import audit_card, resolution_path
 from .evidence import build_evidence_card
 from .report import audit_json, render_claim_audit
 from .retrieval import (
@@ -98,6 +98,29 @@ def _build_reviewer(name: str):
     return anthropic_reviewer()
 
 
+def _reaudit_action(kind: str, req: AuditRequest) -> dict | None:
+    """Map a resolution step to an executable re-audit, given current settings.
+
+    The two grounded levers this tool actually has are *where* it looks (the
+    bundled sample corpus vs. live PubMed) and *how much* it retrieves. Both just
+    re-run the same audited pipeline, so the "how would it become clear" button
+    can never smuggle in ungrounded advice. A citation re-grounding is a manual
+    check with no automatic action.
+    """
+
+    if kind == "reground-citation":
+        return None
+    if req.source == "sample":
+        return {"label": "Re-audit on live PubMed", "params": {"source": "pubmed"}}
+    if req.top_k < 10:
+        nxt = min(10, req.top_k + 3)
+        return {
+            "label": f"Retrieve more (top-k {req.top_k}→{nxt})",
+            "params": {"top_k": nxt},
+        }
+    return None
+
+
 def run_audit(req: AuditRequest) -> dict:
     """Run the full pipeline for one request and return the API payload.
 
@@ -124,6 +147,10 @@ def run_audit(req: AuditRequest) -> dict:
     payload = audit_json(card, audit, critique)
     payload["markdown"] = render_claim_audit(card, audit, critique)
     payload["records_retrieved"] = len(card.retrieved)
+    payload["resolution_path"] = [
+        {**step, "action": _reaudit_action(step["kind"], req)}
+        for step in resolution_path(card, audit)
+    ]
     payload["reviewer_warning"] = reviewer_warning
     payload["settings"] = {
         "source": req.source,
