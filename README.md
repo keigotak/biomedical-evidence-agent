@@ -52,7 +52,7 @@ Note what a smooth answer would have hidden: the claim is **contested**, not con
 
 - **The problem.** Reading the literature — or asking an LLM to summarize it — usually yields a *smooth answer*: a confident synthesis that quietly buries disagreement, overclaims, and citations nobody checked. For a claim that decides an experiment or a budget, "sounds right" isn't good enough.
 - **The bet.** Don't ask the model for a better answer — ask it to **audit the claim**. Make it lay out the evidence on both sides, verify every quote against its source, grade the claim, and say what would change the verdict. *An audit you can check beats an answer you have to trust.*
-- **What you get.** One biological or translational claim in → a reviewable **Claim Audit Report** out: a graded verdict (`well-supported` / `mixed` / `contested` / `contradicted` / `insufficient`), an **Evidence Map** of supporting vs. conflicting sources per claim entity, a **citation-faithfulness** check (every quote must be a verbatim span of its source), **overclaim / contradiction / retrieval-gap** flags, a **reviewer critique**, and an explicit *"what would change my mind."*
+- **What you get.** One biological or translational claim in → a reviewable **Claim Audit Report** out: a graded verdict (`well-supported` / `mixed` / `contested` / `contradicted` / `insufficient`), an **Evidence Map** of supporting vs. conflicting sources per claim entity, a **citation-faithfulness** check (every quote must be a verbatim span of its source), **overclaim / contradiction / retrieval-gap** flags, a **reviewer critique**, and a **Resolution Path** — grounded next steps that name what evidence would settle the claim and re-run the audit toward it in one click.
 - **Why Claude is load-bearing.** On messy real claims from live PubMed the deterministic rules break — in three cases they even endorse debunked claims — while Claude's extractor and reviewer get them right and stay citation-faithful. This is *measured* over 16 live-PubMed claims (the verdict-shift scan below), not asserted. Claude isn't a garnish.
 - **Deliberately narrow.** A deep claim auditor for critical reading — **not** an AI-scientist workbench, a RAG search engine, a wet-lab analyzer, or anything that emits medical advice. Research signal only, no patient data, toy/sample data by default.
 
@@ -145,13 +145,15 @@ The FastAPI app serves the built React bundle *and* the `/api/audit` endpoint
 from the same origin, so it's a single container.
 
 <p align="center">
-  <img src="docs/ui_demo.gif" alt="Screen recording of the BioClaim Auditor React UI: picking the BRAF V600E example claim, running the audit, and scrolling through the contested verdict, metric cards, the color-coded Evidence Map with source tags, audit flags, and evidence grouped by stance." width="900">
+  <img src="docs/ui_demo.gif" alt="Screen recording of the BioClaim Auditor React UI: auditing the BRAF V600E example claim, scrolling through the contested verdict, metric cards, the color-coded Evidence Map with source tags, and audit flags, then clicking the Resolution Path's 'Re-audit on live PubMed' button to re-run the audit on real literature in one click." width="900">
 </p>
 
 *The same pipeline as the CLI, in the browser: verdict with a strength meter,
 metric cards, a color-coded Evidence Map (with the source IDs behind each
 entity), audit flags, evidence grouped by stance, the reviewer critique, and a
-downloadable report. Static stills: a
+downloadable report — plus a **Resolution Path** that turns each gap the audit
+found into a one-click re-audit (e.g. "Re-audit on live PubMed") toward settling
+the claim. Static stills: a
 [contested audit](docs/ui_audit_contested.png), and an
 [overclaim](docs/ui_audit_overclaim.png) where the Evidence Map turns red where
 no evidence addresses an entity, with `overclaim` and `retrieval-gap` flags.*
