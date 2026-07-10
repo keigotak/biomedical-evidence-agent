@@ -14,6 +14,11 @@ RUN pip install --no-cache-dir '.[ui]'
 COPY app.py ./
 COPY data ./data
 
+# Pin the data root explicitly: the package is installed non-editably into
+# site-packages, so the ontology/corpus path must not depend on the module's
+# location. Guarantees resolution to /app/data.
+ENV BIOCLAIM_ROOT=/app
+
 EXPOSE 8501
 HEALTHCHECK CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health')" || exit 1
 

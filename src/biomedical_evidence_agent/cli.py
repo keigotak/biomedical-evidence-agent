@@ -5,13 +5,14 @@ import json
 from pathlib import Path
 
 from .evidence import build_evidence_card, render_markdown
+from .paths import data_path
 from .pubmed import PubMedError, search_pubmed
 from .retrieval import ConceptAwareRetriever, LexicalRetriever, load_corpus
 from .schemas import RetrievedRecord
 
 
 def default_corpus_path() -> Path:
-    return Path(__file__).resolve().parents[2] / "data" / "sample_corpus.jsonl"
+    return data_path("sample_corpus.jsonl")
 
 
 def _build_retriever(name: str, records):

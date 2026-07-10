@@ -24,6 +24,11 @@ RUN pip install --no-cache-dir '.[api]'
 COPY data ./data
 COPY --from=web /web/dist ./web/dist
 
+# Pin the data/bundle root explicitly. The package is installed into
+# site-packages (non-editable), so path resolution must not rely on the module's
+# location; this guarantees the corpus, ontology and web bundle resolve to /app.
+ENV BIOCLAIM_ROOT=/app
+
 EXPOSE 8000
 HEALTHCHECK CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')" || exit 1
 

@@ -16,12 +16,11 @@ same settings the sidebar exposes and returns the machine-readable audit report
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from pydantic import BaseModel, Field
 
 from .audit import audit_card, resolution_path
 from .evidence import build_evidence_card
+from .paths import app_root, data_path
 from .report import audit_json, render_claim_audit
 from .retrieval import (
     ConceptAwareRetriever,
@@ -36,12 +35,12 @@ from .reviewer import (
 )
 from .schemas import RetrievedRecord
 
-# Resolve the corpus relative to the repo root (two levels up from this module:
-# src/biomedical_evidence_agent/api.py -> repo root), matching how the Streamlit
-# app resolves it, so the same sample data works from the repo and in Docker.
-_REPO_ROOT = Path(__file__).resolve().parents[2]
-CORPUS_PATH = _REPO_ROOT / "data" / "sample_corpus.jsonl"
-WEB_DIST = _REPO_ROOT / "web" / "dist"
+# The corpus and the built React bundle are resolved through the shared
+# ``paths`` helper so they work whether this runs from a source checkout or from
+# the Docker image (where the package is pip-installed into site-packages while
+# the data and bundle live under the /app working directory). See paths.py.
+CORPUS_PATH = data_path("sample_corpus.jsonl")
+WEB_DIST = app_root() / "web" / "dist"
 
 EXAMPLE_CLAIMS = [
     "BRAF V600E melanoma is associated with response to targeted inhibitor treatment.",

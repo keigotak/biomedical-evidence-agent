@@ -8,45 +8,46 @@ from .dossier import DossierError, build_target_dossier
 from .evidence import build_evidence_card
 from .moa import extract_moa
 from .ontology import Ontology
+from .paths import data_path
 from .quant import extract_measurements
 from .retrieval import ConceptAwareRetriever, LexicalRetriever, load_corpus
 from .schemas import CorpusRecord
 
 
 def default_entity_eval_path() -> Path:
-    return Path(__file__).resolve().parents[2] / "data" / "evaluation_entities.jsonl"
+    return data_path("evaluation_entities.jsonl")
 
 
 def default_corpus_path() -> Path:
-    return Path(__file__).resolve().parents[2] / "data" / "sample_corpus.jsonl"
+    return data_path("sample_corpus.jsonl")
 
 
 def default_retrieval_eval_path() -> Path:
-    return Path(__file__).resolve().parents[2] / "data" / "evaluation_claims.jsonl"
+    return data_path("evaluation_claims.jsonl")
 
 
 def default_stance_eval_path() -> Path:
-    return Path(__file__).resolve().parents[2] / "data" / "evaluation_stances.jsonl"
+    return data_path("evaluation_stances.jsonl")
 
 
 def default_quant_eval_path() -> Path:
-    return Path(__file__).resolve().parents[2] / "data" / "evaluation_quant.jsonl"
+    return data_path("evaluation_quant.jsonl")
 
 
 def default_verdict_eval_path() -> Path:
-    return Path(__file__).resolve().parents[2] / "data" / "evaluation_verdicts.jsonl"
+    return data_path("evaluation_verdicts.jsonl")
 
 
 def default_dossier_eval_path() -> Path:
-    return Path(__file__).resolve().parents[2] / "data" / "evaluation_dossiers.jsonl"
+    return data_path("evaluation_dossiers.jsonl")
 
 
 def default_moa_eval_path() -> Path:
-    return Path(__file__).resolve().parents[2] / "data" / "evaluation_moa.jsonl"
+    return data_path("evaluation_moa.jsonl")
 
 
 def default_stress_eval_path() -> Path:
-    return Path(__file__).resolve().parents[2] / "data" / "evaluation_stress.jsonl"
+    return data_path("evaluation_stress.jsonl")
 
 
 @dataclass(frozen=True)

@@ -4,6 +4,7 @@ import json
 import re
 from pathlib import Path
 
+from .paths import data_path
 from .schemas import Concept, ConceptMatch
 
 # Surface forms are matched on token boundaries that read hyphenated compounds
@@ -18,7 +19,7 @@ _BOUNDARY_RIGHT = r"(?!\w)"
 
 
 def default_ontology_path() -> Path:
-    return Path(__file__).resolve().parents[2] / "data" / "ontology.jsonl"
+    return data_path("ontology.jsonl")
 
 
 class Ontology:
