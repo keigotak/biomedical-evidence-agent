@@ -134,6 +134,19 @@ docker compose up --build      # then open http://localhost:8000
 The FastAPI app serves the built React bundle *and* the `/api/audit` endpoint
 from the same origin, so it's a single container.
 
+<p align="center">
+  <img src="docs/ui_audit_contested.png" alt="BioClaim Auditor React UI auditing a contested BRAF V600E claim: verdict banner with a strength meter, supporting/conflicting/citation-faithfulness/records-retrieved metric cards, a color-coded per-entity Evidence Map with source tags, audit flags, and evidence grouped by stance." width="900">
+</p>
+
+*The same pipeline as the CLI, in the browser: verdict with a strength meter,
+metric cards, a color-coded Evidence Map (with the source IDs behind each
+entity), audit flags, evidence grouped by stance, the reviewer critique, and a
+downloadable report. An overclaim looks like
+[this](docs/ui_audit_overclaim.png) — the Evidence Map turns red where no
+evidence addresses an entity, with `overclaim` and `retrieval-gap` flags.*
+
+Enter a claim, pick source / retriever / reviewer, and get the verdict, a visual **Evidence Map** (a per-entity bar showing which parts of the claim are supported, contested, or unaddressed — [standalone preview](outputs/example_evidence_map.html)), audit flags, the reviewer critique, and a downloadable Markdown/JSON report. Light and dark themes, and a responsive drawer sidebar on narrow screens. To enable the Claude-backed reviewer, set `ANTHROPIC_API_KEY` in your environment before `docker compose up`.
+
 **Local development** (hot reload, two processes):
 
 ```bash
@@ -156,20 +169,6 @@ docker compose --profile streamlit up bioclaim-auditor   # http://localhost:8501
 # or without Docker:  pip install '.[ui]' && streamlit run app.py
 ```
 </details>
-
-<p align="center">
-  <img src="docs/ui_audit_contested.png" alt="BioClaim Auditor Streamlit UI auditing a contested BRAF V600E claim: verdict badge, supporting/conflicting/citation-faithfulness metrics, a color-coded per-entity Evidence Map, and audit flags." width="900">
-</p>
-
-*The same pipeline as the CLI, in the browser: verdict, metrics, a color-coded
-Evidence Map, audit flags, reviewer critique, and a downloadable report. An
-overclaim looks like [this](docs/ui_audit_overclaim.png) — the Evidence Map turns
-red where no evidence addresses an entity, with `overclaim` and `retrieval-gap`
-flags.*
-
-Enter a claim, pick source / retriever / reviewer, and get the verdict, a visual **Evidence Map** (a per-entity bar showing which parts of the claim are supported, contested, or unaddressed — [standalone preview](outputs/example_evidence_map.html)), audit flags, the reviewer critique, and a downloadable Markdown/JSON report. To enable the Claude-backed reviewer, set `ANTHROPIC_API_KEY` in your environment before `docker compose up`.
-
-Without Docker: `pip install '.[ui]' && streamlit run app.py`.
 
 ## Examples (CLI)
 
@@ -256,8 +255,8 @@ PYTHONPATH=src python experiments/compare_claims.py
 │   ├── demo_video_ja.md           # 3-minute demo-video storyboard (JA)
 │   ├── hero.svg                   # README hero (rendered from real output)
 │   ├── scan_shift.svg             # Verdict-shift figure (det vs Claude, 16 claims)
-│   ├── ui_audit_contested.png     # Streamlit UI screenshot (contested audit)
-│   ├── ui_audit_overclaim.png     # Streamlit UI screenshot (overclaim caught)
+│   ├── ui_audit_contested.png     # React UI screenshot (contested audit)
+│   ├── ui_audit_overclaim.png     # React UI screenshot (overclaim caught)
 │   └── example_output.md          # Example evidence cards
 ├── scripts/
 │   ├── render_hero.py             # Regenerates docs/hero.svg from a real audit
@@ -282,9 +281,14 @@ PYTHONPATH=src python experiments/compare_claims.py
 │   ├── hypothesis_stress_test.py  # Multi-angle claim stress test
 │   ├── compare_claims.py          # Audit several claims into one comparison table
 │   └── reviewer_duel.py           # Advocate vs skeptic debate + judge
-├── app.py                         # Streamlit UI (BioClaim Auditor)
-├── Dockerfile                     # Containerized UI ([ui] extra only)
-├── docker-compose.yml             # `docker compose up` -> http://localhost:8501
+├── web/                           # React + TypeScript front-end (Vite)
+│   ├── src/                       # App, Sidebar, Results components + API client
+│   ├── index.html                # SPA entry
+│   └── package.json               # Frontend deps + build scripts
+├── app.py                         # Legacy Streamlit UI (fallback)
+├── Dockerfile.web                 # React build -> FastAPI serve (default UI, :8000)
+├── Dockerfile                     # Legacy Streamlit image ([ui] extra only, :8501)
+├── docker-compose.yml             # `docker compose up` -> http://localhost:8000
 ├── src/
 │   └── biomedical_evidence_agent/
 │       ├── cli.py                 # Command-line entry point
@@ -296,6 +300,7 @@ PYTHONPATH=src python experiments/compare_claims.py
 │       ├── audit.py               # Rule-based claim audit (citation/overclaim/contradiction/gaps)
 │       ├── reviewer.py            # Reviewer agent (mock / Claude) with citation re-grounding
 │       ├── report.py              # Claim Audit Report renderer (Markdown + JSON)
+│       ├── api.py                 # FastAPI backend for the React UI ([api] extra)
 │       ├── extraction.py          # Optional model-backed claim extractor ([llm] extra)
 │       ├── dossier.py             # Target-centric evidence roll-up
 │       ├── quant.py               # Quantitative parameter extraction

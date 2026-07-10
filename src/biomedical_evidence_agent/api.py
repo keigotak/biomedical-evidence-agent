@@ -123,6 +123,7 @@ def run_audit(req: AuditRequest) -> dict:
 
     payload = audit_json(card, audit, critique)
     payload["markdown"] = render_claim_audit(card, audit, critique)
+    payload["records_retrieved"] = len(card.retrieved)
     payload["reviewer_warning"] = reviewer_warning
     payload["settings"] = {
         "source": req.source,

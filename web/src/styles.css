@@ -662,6 +662,17 @@ textarea.claim-input:focus-visible {
   color: var(--bad);
   font-weight: 600;
 }
+.em-sources {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+.em-sources .tag {
+  font-size: 0.66rem;
+  padding: 0 6px;
+}
 /* Narrow screens: the fixed 12rem/10rem columns overflow, so stack the row —
    entity name on top, a full-width bar, then the summary. */
 @media (max-width: 620px) {

@@ -79,6 +79,7 @@ export interface AuditResult {
   next_checks: string[];
   limitations: string[];
   markdown: string;
+  records_retrieved: number;
   reviewer_warning: string | null;
   settings: {
     source: string;

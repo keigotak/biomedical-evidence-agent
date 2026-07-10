@@ -56,10 +56,6 @@ function VerdictBanner({ result }: { result: AuditResult }) {
 function Metrics({ result }: { result: AuditResult }) {
   const v = result.verdict;
   const faith = result.citation_audit.faithfulness * 100;
-  const records =
-    result.evidence.supporting.length +
-    result.evidence.conflicting.length +
-    result.evidence.indirect.length;
   const cells = [
     { value: v?.support_sources ?? 0, label: "Supporting sources", color: "var(--good)" },
     { value: v?.conflict_sources ?? 0, label: "Conflicting sources", color: "var(--warn)" },
@@ -68,7 +64,7 @@ function Metrics({ result }: { result: AuditResult }) {
       label: "Citation faithfulness",
       color: faith >= 99 ? "var(--good)" : faith >= 80 ? "var(--warn)" : "var(--bad)",
     },
-    { value: records, label: "Evidence sentences", color: "var(--text)" },
+    { value: result.records_retrieved, label: "Records retrieved", color: "var(--text)" },
   ];
   return (
     <div className="metrics">
@@ -137,13 +133,24 @@ function EvidenceMap({ rows }: { rows: EvidenceMapEntry[] }) {
                     ⚠ unaddressed by any retrieved sentence
                   </span>
                 ) : (
-                  [
-                    e.supports && `${e.supports} supporting`,
-                    e.conflicts && `${e.conflicts} conflicting`,
-                    e.indirect && `${e.indirect} indirect`,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")
+                  <>
+                    {[
+                      e.supports && `${e.supports} supporting`,
+                      e.conflicts && `${e.conflicts} conflicting`,
+                      e.indirect && `${e.indirect} indirect`,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                    {e.sources.length > 0 && (
+                      <span className="em-sources">
+                        {e.sources.map((s) => (
+                          <span key={s} className="tag">
+                            {s}
+                          </span>
+                        ))}
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
             </div>
